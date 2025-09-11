@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="monthly_expenses_mobile_app"
+        android:label="Monthly Expenses"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
