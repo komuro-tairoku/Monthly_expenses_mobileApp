@@ -1,17 +1,22 @@
-# monthly_expenses_mobile_app
+# 📊 Monthly Expenses - Flutter App
 
-A new Flutter project.
+Ứng dụng **Monthly Expenses** giúp bạn quản lý chi tiêu cá nhân hằng tháng một cách dễ dàng.  
+Được xây dựng bằng **Flutter**, hỗ trợ đa nền tảng (Android & iOS).  
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Tính năng chính
+- ➕ Thêm, sửa, xóa các khoản chi tiêu
+- 📅 Phân loại chi tiêu theo ngày, tuần, tháng
+- 📊 Thống kê chi tiêu bằng biểu đồ trực quan
+- 🔍 Tìm kiếm và lọc theo danh mục
+- ☁️ Dễ dàng mở rộng để kết nối với Firebase / SQLite
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🛠️ Công nghệ sử dụng
+- [Flutter](https://flutter.dev/) - Framework chính
+- [Dart](https://dart.dev/) - Ngôn ngữ lập trình
+- SQLite / Firebase (tùy chọn cho database)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-"# Monthly_expenses_mobileApp" 
+---
