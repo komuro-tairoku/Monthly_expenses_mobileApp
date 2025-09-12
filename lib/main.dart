@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // ẩn banner "debug"
+      debugShowCheckedModeBanner: false,
       title: 'Quản lý thu chi',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
       home: const Home(),
