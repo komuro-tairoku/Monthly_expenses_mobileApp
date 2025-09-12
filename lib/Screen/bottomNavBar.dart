@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'HomeScreen.dart';
+import 'Statement.dart';
+import 'Budget.dart';
+import 'User.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -12,11 +16,10 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
   static final List<Widget> _screens = [
-    Container(),
-    Container(),
-    Container(),
-    Container(),
-    Container(),
+    const HomeScreen(),
+    const Statement(),
+    const Budget(),
+    const User(),
   ];
   void _onItemTap(int index) {
     setState(() {
@@ -29,27 +32,31 @@ class _HomeState extends State<Home> {
     return Scaffold(
       backgroundColor: const Color(0xFFEEEEEE),
       body: _screens[_selectedIndex],
+
       bottomNavigationBar: BottomAppBar(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            buildNavBarItem(CupertinoIcons.house_alt_fill, 'Home', 0),
-            buildNavBarItem(CupertinoIcons.chart_pie_fill, 'Báo cáo', 1),
-            SizedBox(width: 25),
-            buildNavBarItem(
-              CupertinoIcons.money_dollar_circle_fill,
-              'Ngân sách',
-              2,
-            ),
-            buildNavBarItem(CupertinoIcons.person_fill, 'User', 3),
-          ],
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              buildNavBarItem(CupertinoIcons.house_alt_fill, 'Home', 0),
+              buildNavBarItem(CupertinoIcons.chart_pie_fill, 'Báo cáo', 1),
+              SizedBox(width: 25),
+              buildNavBarItem(
+                CupertinoIcons.money_dollar_circle_fill,
+                'Ngân sách',
+                2,
+              ),
+              buildNavBarItem(CupertinoIcons.person_fill, 'User', 3),
+            ],
+          ),
         ),
       ),
       floatingActionButton: RawMaterialButton(
         onPressed: () {},
         shape: const CircleBorder(),
         fillColor: Colors.white,
-        elevation: 4,
+        elevation: 10,
         child: SvgPicture.asset(
           'assets/icons/add.svg',
           width: 60,
@@ -62,6 +69,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget buildNavBarItem(IconData icon, String label, int index) {
+    final bool isSlected = _selectedIndex == index;
     return InkWell(
       onTap: () => _onItemTap(index),
       child: Column(
