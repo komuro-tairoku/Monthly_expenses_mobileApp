@@ -30,7 +30,7 @@ class _IntroPageState extends State<IntroPage> {
           image: Center(
             child: Icon(
               Icons.monetization_on_rounded,
-              size: 100,
+              size: 150,
               color: Color(0xFFD4AF37),
             ),
           ),
@@ -95,9 +95,47 @@ class _IntroPageState extends State<IntroPage> {
             ),
           ),
         ),
+        PageViewModel(
+          titleWidget: Text(
+            "Bạn đã sẵn sàng?",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF6B43FF),
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          bodyWidget: Text.rich(
+            TextSpan(
+              text: "Ấn ", // phần chữ bình thường
+              style: TextStyle(fontSize: 25, color: Colors.black),
+              children: [
+                TextSpan(
+                  text: "tiếp tục", // phần chữ đổi màu
+                  style: TextStyle(
+                    color: Color(0xFF6B43FF),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text: " để bắt đầu trải nghiệm", // phần chữ bình thường
+                  style: TextStyle(color: Colors.black),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center, // căn giữa toàn bộ text
+          ),
+          image: Center(
+            child: Icon(
+              Icons.download_done_rounded,
+              size: 150,
+              color: Colors.green[400],
+            ),
+          ),
+        ),
       ],
       done: const Text(
-        "Done",
+        "Tiếp tục",
         style: TextStyle(
           fontWeight: FontWeight.w600,
           color: Color(0xFF6B43FF),

@@ -73,6 +73,7 @@ class _HomeState extends State<Home> {
     return InkWell(
       onTap: () => _onItemTap(index),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
@@ -82,7 +83,6 @@ class _HomeState extends State<Home> {
           ),
           Text(label),
         ],
-        mainAxisSize: MainAxisSize.min,
       ),
     );
   }
