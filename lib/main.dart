@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:monthly_expenses_mobile_app/Screen/IntroPage.dart';
 import 'Screen/bottomNavBar.dart';
-import 'Screen/HomeScreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +16,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Quản lý thu chi',
       theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: const Home(),
+      home: const IntroPage(),
+      routes: {'/home': (context) => const Home()},
     );
   }
 }
