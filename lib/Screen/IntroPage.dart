@@ -31,7 +31,7 @@ class _IntroPageState extends State<IntroPage> {
             child: Icon(
               Icons.monetization_on_rounded,
               size: 150,
-              color: Color(0xFFD4AF37),
+              color: Color.fromARGB(255, 232, 192, 63),
             ),
           ),
         ),

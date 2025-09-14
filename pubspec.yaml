@@ -41,7 +41,9 @@ dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/app_icons/finance_icon.png"
+  image_path: "assets/app_icons/financeIcon.png"
+  adaptive_icon_foreground: "assets/app_icons/financeIconForeground.png"
+  adaptive_icon_background: "#ffffff"
 
 dev_dependencies:
   flutter_test:
