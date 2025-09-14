@@ -25,7 +25,9 @@ class _IntroPageState extends State<IntroPage> {
           ),
           bodyWidget: Text(
             "Ứng dụng quản lý chi tiêu",
-            style: TextStyle(fontSize: 25),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium!.copyWith(fontSize: 25),
           ),
           image: Center(
             child: Icon(
@@ -46,15 +48,24 @@ class _IntroPageState extends State<IntroPage> {
           ),
           bodyWidget: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 "• Ghi lại chi tiêu nhanh chóng",
-                style: TextStyle(fontSize: 25),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               ),
-              Text("• Xem báo cáo trực quan", style: TextStyle(fontSize: 25)),
+              Text(
+                "• Xem báo cáo trực quan",
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
+              ),
               Text(
                 "• Đặt ngân sách thông minh",
-                style: TextStyle(fontSize: 25),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               ),
             ],
           ),
@@ -77,14 +88,31 @@ class _IntroPageState extends State<IntroPage> {
           ),
           bodyWidget: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text("• Dễ dàng sử dụng", style: TextStyle(fontSize: 25)),
+            children: [
+              Text(
+                "• Dễ dàng sử dụng",
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
+              ),
               Text(
                 "• Thiết kế tối giản, trực quan",
-                style: TextStyle(fontSize: 25),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               ),
-              Text("• Hỗ trợ đa nền tảng", style: TextStyle(fontSize: 25)),
-              Text("• Trải nghiệm mượt mà", style: TextStyle(fontSize: 25)),
+              Text(
+                "• Hỗ trợ đa nền tảng",
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
+              ),
+              Text(
+                "• Trải nghiệm mượt mà",
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontSize: 25),
+              ),
             ],
           ),
           image: Center(
@@ -108,7 +136,9 @@ class _IntroPageState extends State<IntroPage> {
           bodyWidget: Text.rich(
             TextSpan(
               text: "Ấn ", // phần chữ bình thường
-              style: TextStyle(fontSize: 25, color: Colors.black),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               children: [
                 TextSpan(
                   text: "tiếp tục", // phần chữ đổi màu
@@ -119,7 +149,9 @@ class _IntroPageState extends State<IntroPage> {
                 ),
                 TextSpan(
                   text: " để bắt đầu trải nghiệm", // phần chữ bình thường
-                  style: TextStyle(color: Colors.black),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium!.copyWith(fontSize: 25),
                 ),
               ],
             ),

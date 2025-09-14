@@ -79,7 +79,7 @@ class _HomeState extends State<Home> {
             icon,
             color: _selectedIndex == index
                 ? Color(0xFF6B43FF)
-                : Color(0xFF444444),
+                : Color(0xFF828282),
           ),
           Text(label),
         ],

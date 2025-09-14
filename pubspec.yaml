@@ -37,6 +37,9 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_svg: ^2.2.1
   introduction_screen: ^4.0.0
+  animated_toggle_switch: ^0.8.5
+  flutter_hooks: ^0.21.3+1
+  hooks_riverpod: ^3.0.0
 
 flutter_icons:
   android: true

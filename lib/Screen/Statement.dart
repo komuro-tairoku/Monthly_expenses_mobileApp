@@ -10,12 +10,9 @@ class Statement extends StatefulWidget {
 class _StatementState extends State<Statement> {
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Statement',
-        style: TextStyle(color: Colors.red, fontSize: 30),
-      ),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(toolbarHeight: 100),
     );
-    ;
   }
 }
