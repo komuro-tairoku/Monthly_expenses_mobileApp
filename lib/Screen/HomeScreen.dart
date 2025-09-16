@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Positioned(
+            top: 30,
             child: IconButton(
               onPressed: () {},
               icon: SvgPicture.asset(
@@ -33,9 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Color(0xFFE0E0E0),
               ),
             ),
-            top: 30,
           ),
           Positioned(
+            top: 38,
+            right: 0,
             child: IconButton(
               onPressed: () {},
               icon: SvgPicture.asset(
@@ -44,8 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Color(0xFFE0E0E0),
               ),
             ),
-            top: 38,
-            right: 0,
           ),
         ],
       ),
