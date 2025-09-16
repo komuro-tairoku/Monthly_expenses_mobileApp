@@ -5,6 +5,7 @@ import 'HomeScreen.dart';
 import 'Statement.dart';
 import 'Budget.dart';
 import 'User.dart';
+import 'bottomSheet.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -57,39 +58,8 @@ class _HomeState extends State<Home> {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (BuildContext context) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                ),
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 150,
-                          color: Color(0xFF6B43FF),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                icon: Icon(
-                                  Icons.arrow_back_ios_new,
-                                  size: 25,
-                                  color: Color(0xFFE0E0E0),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
+            builder: (context) {
+              return const bottomSheet();
             },
           );
         },

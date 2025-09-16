@@ -135,27 +135,27 @@ class _IntroPageState extends State<IntroPage> {
           ),
           bodyWidget: Text.rich(
             TextSpan(
-              text: "Ấn ", // phần chữ bình thường
+              text: "Ấn ",
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               children: [
                 TextSpan(
-                  text: "tiếp tục", // phần chữ đổi màu
+                  text: "tiếp tục",
                   style: TextStyle(
                     color: Color(0xFF6B43FF),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 TextSpan(
-                  text: " để bắt đầu trải nghiệm", // phần chữ bình thường
+                  text: " để bắt đầu trải nghiệm",
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium!.copyWith(fontSize: 25),
                 ),
               ],
             ),
-            textAlign: TextAlign.center, // căn giữa toàn bộ text
+            textAlign: TextAlign.center,
           ),
           image: Center(
             child: Icon(
