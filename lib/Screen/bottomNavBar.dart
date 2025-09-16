@@ -7,7 +7,6 @@ import 'Budget.dart';
 import 'User.dart';
 import 'bottomSheet.dart';
 
-
 class Home extends StatefulWidget {
   const Home({super.key});
 
