@@ -1,6 +1,7 @@
 // user_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:monthly_expenses_mobile_app/Screen/themeProvider.dart';
@@ -157,15 +158,54 @@ class _UserState extends ConsumerState<User> {
                             "Notifications",
                           ),
                           _buildItem(context, Icons.lock, "Privacy"),
+
                         ],
                       ),
+
                     ),
+                    Container(
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 33),
+                            child: SvgPicture.asset(
+                              'assets/icons/crown.svg',
+                              width: 25,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                color: Colors.white, // màu mặc định cho toàn bộ câu
+                                fontSize: 16,        // cỡ chữ mặc định
+                              ),
+                              children: [
+                                TextSpan(text: 'Nạp ',
+                                style: Theme.of(context).textTheme.bodyMedium,),
+                                TextSpan(
+                                  text: 'VIP',
+                                  style: TextStyle(
+                                    color: Color(0xffffb643), // màu vàng gold
+                                    fontSize: 20,             // cỡ chữ lớn hơn
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(text: ' để sử dụng tất cả tính năng',
+                                  style: Theme.of(context).textTheme.bodyMedium,),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+
+
                   ],
                 ),
               ),
             ],
           ),
-
           Positioned(
             top: 90,
             left: MediaQuery.of(context).size.width / 2 - (circleSize / 2),

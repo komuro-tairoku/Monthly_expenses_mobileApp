@@ -157,6 +157,7 @@ class _IntroPageState extends State<IntroPage> {
             ),
             textAlign: TextAlign.center, // căn giữa toàn bộ text
           ),
+
           image: Center(
             child: Icon(
               Icons.download_done_rounded,
