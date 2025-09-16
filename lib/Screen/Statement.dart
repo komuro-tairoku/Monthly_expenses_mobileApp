@@ -11,9 +11,8 @@ class Statement extends StatefulWidget {
 class _StatementState extends State<Statement> {
   DateTime _selectedDate = DateTime.now();
 
-  // Giả lập dữ liệu thu chi (có thể thay bằng dữ liệu DB sau này)
-  double income = 5000000; // 5 triệu
-  double expense = 3200000; // 3.2 triệu
+  double income = 5000000;
+  double expense = 3200000;
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -26,7 +25,6 @@ class _StatementState extends State<Statement> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        // 🔹 Sau này bạn có thể load dữ liệu thu chi theo ngày ở đây
       });
     }
   }
@@ -41,17 +39,13 @@ class _StatementState extends State<Statement> {
         centerTitle: true,
         toolbarHeight: 80,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.date_range),
-            onPressed: _pickDate,
-          ),
+          IconButton(icon: const Icon(Icons.date_range), onPressed: _pickDate),
         ],
       ),
       body: Column(
         children: [
           const SizedBox(height: 20),
 
-          // Hiển thị ngày đã chọn
           Text(
             "Ngày: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -59,7 +53,6 @@ class _StatementState extends State<Statement> {
 
           const SizedBox(height: 20),
 
-          // Biểu đồ hình tròn
           SizedBox(
             height: 200,
             child: PieChart(
@@ -71,19 +64,22 @@ class _StatementState extends State<Statement> {
                     title: "Thu\n${(income / total * 100).toStringAsFixed(1)}%",
                     radius: 70,
                     titleStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   PieChartSectionData(
                     color: Colors.red,
                     value: expense,
-                    title: "Chi\n${(expense / total * 100).toStringAsFixed(1)}%",
+                    title:
+                        "Chi\n${(expense / total * 100).toStringAsFixed(1)}%",
                     radius: 70,
                     titleStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -92,7 +88,6 @@ class _StatementState extends State<Statement> {
 
           const SizedBox(height: 30),
 
-          // Thống kê chi tiết
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -114,12 +109,17 @@ class _StatementState extends State<Statement> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
         Text(
           "${amount.toStringAsFixed(0)} đ",
           style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.bold, color: color),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );

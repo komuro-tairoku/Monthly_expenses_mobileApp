@@ -1,5 +1,10 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:monthly_expenses_mobile_app/Screen/HomeScreen.dart';
+import 'package:monthly_expenses_mobile_app/db/transaction.dart';
+import 'HomeScreen.dart';
+import 'bottomNavBar.dart';
 
 class bottomSheet extends StatefulWidget {
   const bottomSheet({super.key});
@@ -9,11 +14,12 @@ class bottomSheet extends StatefulWidget {
 }
 
 class _bottomSheetState extends State<bottomSheet> {
-  int value = 0;
+  int value = 0; // 0 = chi, 1 = thu
   final PageController _pageController = PageController();
 
   String amount = "";
   String? selectedCategory;
+  String note = "";
 
   final List<Map<String, dynamic>> chiOptions = [
     {"icon": Icons.shopping_cart, "label": "Mua sắm"},
@@ -46,6 +52,7 @@ class _bottomSheetState extends State<bottomSheet> {
         height: MediaQuery.of(context).size.height,
         child: Column(
           children: [
+            // header
             Container(
               height: 150,
               decoration: const BoxDecoration(color: Color(0xFF6B43FF)),
@@ -69,7 +76,6 @@ class _bottomSheetState extends State<bottomSheet> {
                           current: value,
                           values: const [0, 1],
                           indicatorSize: const Size(100, 35),
-                          iconOpacity: 1,
                           borderWidth: 5,
                           style: ToggleStyle(
                             borderColor: Colors.transparent,
@@ -78,16 +84,14 @@ class _bottomSheetState extends State<bottomSheet> {
                           ),
                           styleBuilder: (i) =>
                               ToggleStyle(indicatorColor: Colors.green[600]),
-                          iconBuilder: (i) {
-                            return Center(
-                              child: Text(
-                                i == 0 ? "Tiền Chi" : "Tiền Thu",
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(fontSize: 17),
-                              ),
-                            );
-                          },
+                          iconBuilder: (i) => Center(
+                            child: Text(
+                              i == 0 ? "Tiền Chi" : "Tiền Thu",
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(fontSize: 17),
+                            ),
+                          ),
                           onChanged: (i) {
                             setState(() => value = i);
                             _pageController.animateToPage(
@@ -116,6 +120,8 @@ class _bottomSheetState extends State<bottomSheet> {
               ),
             ),
             const SizedBox(height: 25),
+
+            // grid chọn category
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -177,6 +183,7 @@ class _bottomSheetState extends State<bottomSheet> {
 
   void _showAmountSheet(String category) {
     setState(() => selectedCategory = category);
+    amount = "";
 
     showModalBottomSheet(
       context: context,
@@ -224,8 +231,11 @@ class _bottomSheetState extends State<bottomSheet> {
                   const SizedBox(height: 12),
                   TextField(
                     decoration: const InputDecoration(labelText: "Ghi chú"),
+                    onChanged: (val) => note = val,
                   ),
                   const SizedBox(height: 16),
+
+                  // keypad
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -249,7 +259,49 @@ class _bottomSheetState extends State<bottomSheet> {
                       } else if (index == 11) {
                         return ElevatedButton(
                           onPressed: () {
-                            Navigator.pop(context);
+                            if (amount.isNotEmpty && selectedCategory != null) {
+                              final transaction = TransactionItem(
+                                label: note.isNotEmpty
+                                    ? note
+                                    : selectedCategory!,
+                                amount: double.tryParse(amount) ?? 0,
+                                isIncome: value == 1,
+                              );
+                              final box = Hive.box<TransactionItem>(
+                                'transactions',
+                              );
+                              box.add(transaction);
+
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text("Thành công"),
+                                  content: Text(
+                                    value == 1
+                                        ? "Đã thêm thu nhập!"
+                                        : "Đã thêm chi tiêu!",
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                        Navigator.of(context).pop();
+                                        Navigator.of(this.context).pop();
+
+                                        Navigator.of(
+                                          this.context,
+                                        ).pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (_) => const Home(),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text("OK"),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           },
                           child: const Icon(Icons.check),
                         );

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:monthly_expenses_mobile_app/db/transaction.dart';
+import 'Screen/bottomNavBar.dart';
 import 'package:monthly_expenses_mobile_app/Screen/IntroPage.dart';
 import 'package:monthly_expenses_mobile_app/Screen/theme.dart';
 import 'package:monthly_expenses_mobile_app/Screen/themeProvider.dart';
-import 'Screen/bottomNavBar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  Hive.registerAdapter(TransactionItemAdapter());
   await Hive.openBox('settings');
+  await Hive.openBox<TransactionItem>('transactions');
   runApp(const ProviderScope(child: MyApp()));
 }
 

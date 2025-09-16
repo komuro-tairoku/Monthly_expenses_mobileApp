@@ -1,6 +1,16 @@
-class TransactionItem {
+import 'package:hive/hive.dart';
+
+part 'transaction.g.dart';
+
+@HiveType(typeId: 0)
+class TransactionItem extends HiveObject {
+  @HiveField(0)
   final String label;
+
+  @HiveField(1)
   final double amount;
+
+  @HiveField(2)
   final bool isIncome;
 
   TransactionItem({
@@ -8,16 +18,4 @@ class TransactionItem {
     required this.amount,
     required this.isIncome,
   });
-
-  Map<String, dynamic> toMap() {
-    return {'label': label, 'amount': amount, 'isIncome': isIncome};
-  }
-
-  factory TransactionItem.fromMap(Map<dynamic, dynamic> map) {
-    return TransactionItem(
-      label: map['label'],
-      amount: map['amount'],
-      isIncome: map['isIncome'],
-    );
-  }
 }
