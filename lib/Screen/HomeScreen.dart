@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:monthly_expenses_mobile_app/db/transaction.dart';
 
@@ -156,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             onLongPress: () {
-                              _showEditDialog(item, index);
+                              _showOptions(context, item, index);
                             },
                           ),
                         ),
@@ -211,10 +210,51 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showOptions(BuildContext context, TransactionItem item, int index) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text("Sửa"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditDialog(item, index);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text("Xóa"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  transactionBox.deleteAt(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text("Đã xóa giao dịch"),
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.all(12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showEditDialog(TransactionItem item, int index) {
     final labelController = TextEditingController(text: item.label);
     final amountController = TextEditingController(
-      text: item.amount.toString(),
+      text: item.amount.toStringAsFixed(0),
     );
 
     showDialog(
@@ -228,11 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: labelController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
+                style: const TextStyle(color: Colors.black, fontSize: 18),
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Số tiền"),
+                style: const TextStyle(color: Colors.black, fontSize: 18),
               ),
             ],
           ),
