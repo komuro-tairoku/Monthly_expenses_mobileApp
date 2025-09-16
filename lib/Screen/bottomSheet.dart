@@ -14,7 +14,7 @@ class bottomSheet extends StatefulWidget {
 }
 
 class _bottomSheetState extends State<bottomSheet> {
-  int value = 0; // 0 = chi, 1 = thu
+  int value = 0;
   final PageController _pageController = PageController();
 
   String amount = "";
@@ -52,7 +52,6 @@ class _bottomSheetState extends State<bottomSheet> {
         height: MediaQuery.of(context).size.height,
         child: Column(
           children: [
-            // header
             Container(
               height: 150,
               decoration: const BoxDecoration(color: Color(0xFF6B43FF)),

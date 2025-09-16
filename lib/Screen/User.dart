@@ -161,6 +161,26 @@ class _UserState extends ConsumerState<User> {
                         ],
                       ),
                     ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset('assets/icons/crown.svg', width: 25),
+                        const SizedBox(width: 6),
+                        const Text('Nạp'),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'VIP',
+                          style: TextStyle(
+                            fontSize: 23,
+                            color: Color(0xFFFFB743),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('để sử dụng full chức năng'),
+                      ],
+                    ),
                   ],
                 ),
               ),

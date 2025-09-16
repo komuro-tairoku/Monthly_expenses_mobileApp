@@ -13,7 +13,7 @@ class appTheme {
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
       bodyMedium: TextStyle(color: Colors.black),
-      bodySmall: TextStyle(color: Color.fromARGB(255, 81, 81, 81)),
+      bodySmall: TextStyle(color: Colors.black),
     ),
     iconTheme: const IconThemeData(color: Color(0xFF444444)),
   );
