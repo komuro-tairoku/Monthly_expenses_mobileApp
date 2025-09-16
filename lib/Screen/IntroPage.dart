@@ -157,6 +157,7 @@ class _IntroPageState extends State<IntroPage> {
             ),
             textAlign: TextAlign.center,
           ),
+
           image: Center(
             child: Icon(
               Icons.download_done_rounded,
