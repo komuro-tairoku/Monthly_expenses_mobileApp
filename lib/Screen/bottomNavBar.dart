@@ -53,7 +53,46 @@ class _HomeState extends State<Home> {
         ),
       ),
       floatingActionButton: RawMaterialButton(
-        onPressed: () {},
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (BuildContext context) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height,
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 150,
+                          color: Color(0xFF6B43FF),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                icon: Icon(
+                                  Icons.arrow_back_ios_new,
+                                  size: 25,
+                                  color: Color(0xFFE0E0E0),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
         shape: const CircleBorder(),
         fillColor: Colors.white,
         elevation: 10,
