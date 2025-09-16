@@ -50,9 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
-          const SizedBox(height: 16),
-
-          // 🔹 Danh sách giao dịch từ Hive
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: transactionBox.listenable(),
@@ -74,26 +71,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: transactions.length,
                   itemBuilder: (context, index) {
                     final item = transactions[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+
+                    return Dismissible(
+                      key: ValueKey(item.key),
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
                       ),
-                      child: ListTile(
-                        leading: Icon(
-                          item.isIncome
-                              ? Icons.arrow_downward
-                              : Icons.arrow_upward,
-                          color: item.isIncome ? Colors.green : Colors.red,
+                      secondaryBackground: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) {
+                        box.deleteAt(index);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Đã xóa giao dịch")),
+                        );
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                        title: Text(item.label),
-                        subtitle: Text(item.isIncome ? "Thu nhập" : "Chi tiêu"),
-                        trailing: Text(
-                          "${item.amount.toStringAsFixed(0)} đ",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                        child: ListTile(
+                          leading: Icon(
+                            item.isIncome
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
                             color: item.isIncome ? Colors.green : Colors.red,
                           ),
+                          title: Text(item.label),
+                          subtitle: Text(
+                            item.isIncome ? "Thu nhập" : "Chi tiêu",
+                          ),
+                          trailing: Text(
+                            "${item.amount.toStringAsFixed(0)} đ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: item.isIncome ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          onLongPress: () {
+                            _showOptions(context, item, index);
+                          },
                         ),
                       ),
                     );
@@ -104,6 +128,93 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showOptions(BuildContext context, TransactionItem item, int index) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text("Sửa"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showEditDialog(item, index);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text("Xóa"),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  transactionBox.deleteAt(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Đã xóa giao dịch")),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditDialog(TransactionItem item, int index) {
+    final labelController = TextEditingController(text: item.label);
+    final amountController = TextEditingController(
+      text: item.amount.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Sửa giao dịch"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: labelController,
+                decoration: const InputDecoration(labelText: "Nội dung"),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Số tiền"),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newLabel = labelController.text.trim();
+                final newAmount = double.tryParse(amountController.text) ?? 0;
+
+                final updated = TransactionItem(
+                  label: newLabel.isNotEmpty ? newLabel : item.label,
+                  amount: newAmount,
+                  isIncome: item.isIncome,
+                );
+
+                transactionBox.putAt(index, updated);
+                Navigator.pop(context);
+              },
+              child: const Text("Lưu"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

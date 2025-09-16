@@ -176,7 +176,6 @@ class _IntroPageState extends State<IntroPage> {
         ),
       ),
       onDone: () {
-        // Khi bấm Done -> chuyển trang
         Navigator.of(context).pushReplacementNamed('/home');
       },
       showSkipButton: true,

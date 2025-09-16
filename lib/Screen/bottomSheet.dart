@@ -121,7 +121,6 @@ class _bottomSheetState extends State<bottomSheet> {
             ),
             const SizedBox(height: 25),
 
-            // grid chọn category
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -235,7 +234,6 @@ class _bottomSheetState extends State<bottomSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // keypad
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -243,7 +241,7 @@ class _bottomSheetState extends State<bottomSheet> {
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
-                          childAspectRatio: 2,
+                          childAspectRatio: 1.5,
                         ),
                     itemBuilder: (context, index) {
                       if (index == 9) {
@@ -308,7 +306,10 @@ class _bottomSheetState extends State<bottomSheet> {
                       }
                       return TextButton(
                         onPressed: () => addNumber("${index + 1}"),
-                        child: Text("${index + 1}"),
+                        child: Text(
+                          "${index + 1}",
+                          style: TextStyle(fontSize: 20),
+                        ),
                       );
                     },
                   ),
