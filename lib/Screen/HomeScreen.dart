@@ -25,17 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Positioned(
-            top: 30,
-            child: IconButton(
-              onPressed: () {},
-              icon: SvgPicture.asset(
-                'assets/icons/menu.svg',
-                width: 40,
-                color: Color(0xFFE0E0E0),
-              ),
-            ),
-          ),
-          Positioned(
             top: 38,
             right: 0,
             child: IconButton(
