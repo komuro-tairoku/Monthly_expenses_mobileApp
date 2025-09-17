@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:monthly_expenses_mobile_app/db/transaction.dart';
 
 class Statement extends StatefulWidget {
   const Statement({super.key});
@@ -10,9 +12,6 @@ class Statement extends StatefulWidget {
 
 class _StatementState extends State<Statement> {
   DateTime _selectedDate = DateTime.now();
-
-  double income = 5000000;
-  double expense = 3200000;
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -31,7 +30,7 @@ class _StatementState extends State<Statement> {
 
   @override
   Widget build(BuildContext context) {
-    double total = income + expense;
+    final transactionBox = Hive.box<TransactionItem>('transactions');
 
     return Scaffold(
       appBar: AppBar(
@@ -42,65 +41,102 @@ class _StatementState extends State<Statement> {
           IconButton(icon: const Icon(Icons.date_range), onPressed: _pickDate),
         ],
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
+      body: ValueListenableBuilder(
+        valueListenable: transactionBox.listenable(),
+        builder: (context, Box<TransactionItem> box, _) {
+          final transactions = box.values.toList();
 
-          Text(
-            "Ngày: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          // Tính tổng thu / chi
+          double totalIncome = 0;
+          double totalExpense = 0;
 
-          const SizedBox(height: 20),
+          for (var t in transactions) {
+            if (t.isIncome) {
+              totalIncome += t.amount;
+            } else {
+              totalExpense += t.amount;
+            }
+          }
 
-          SizedBox(
-            height: 200,
-            child: PieChart(
-              PieChartData(
-                sections: [
-                  PieChartSectionData(
-                    color: Colors.green,
-                    value: income,
-                    title: "Thu\n${(income / total * 100).toStringAsFixed(1)}%",
-                    radius: 70,
-                    titleStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  PieChartSectionData(
-                    color: Colors.red,
-                    value: expense,
-                    title:
-                        "Chi\n${(expense / total * 100).toStringAsFixed(1)}%",
-                    radius: 70,
-                    titleStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
+          double total = totalIncome + totalExpense;
+
+          return Column(
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                "Ngày: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ),
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 30),
+              // Luôn hiển thị PieChart
+              SizedBox(
+                height: 200,
+                child: PieChart(
+                  PieChartData(
+                    sections: [
+                      PieChartSectionData(
+                        color: Colors.green,
+                        value: totalIncome,
+                        title:
+                            "Thu\n${total == 0 ? 0 : (totalIncome / total * 100).toStringAsFixed(1)}%",
+                        radius: 70,
+                        titleStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      PieChartSectionData(
+                        color: Colors.red,
+                        value: totalExpense,
+                        title:
+                            "Chi\n${total == 0 ? 0 : (totalExpense / total * 100).toStringAsFixed(1)}%",
+                        radius: 70,
+                        titleStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                _buildSummaryRow("Tổng thu:", income, Colors.green),
-                const SizedBox(height: 10),
-                _buildSummaryRow("Tổng chi:", expense, Colors.red),
-                const SizedBox(height: 10),
-                _buildSummaryRow("Còn lại:", income - expense, Colors.blue),
-              ],
-            ),
-          ),
-        ],
+              const SizedBox(height: 30),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    _buildSummaryRow("Tổng thu:", totalIncome, Colors.green),
+                    const SizedBox(height: 10),
+                    _buildSummaryRow("Tổng chi:", totalExpense, Colors.red),
+                    const SizedBox(height: 10),
+                    _buildSummaryRow(
+                      "Còn lại:",
+                      totalIncome - totalExpense,
+                      Colors.blue,
+                    ),
+                  ],
+                ),
+              ),
+
+              if (transactions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    "Chưa có dữ liệu giao dịch",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

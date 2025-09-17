@@ -18,7 +18,7 @@ class _HomeState extends State<Home> {
   int _selectedIndex = 0;
   static final List<Widget> _screens = [
     const HomeScreen(),
-    const Statement(),
+    Statement(),
     const Budget(),
     const User(),
   ];

@@ -1,4 +1,3 @@
-// user_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -126,7 +125,7 @@ class _UserState extends ConsumerState<User> {
                   children: [
                     SizedBox(height: 100),
                     Text(
-                      "User",
+                      "Profile",
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium!.copyWith(fontSize: 25),
@@ -151,13 +150,9 @@ class _UserState extends ConsumerState<User> {
                           ),
                           SizedBox(height: 21),
                           _buildItem(context, Icons.person, "Edit profile"),
-                          _buildItem(context, Icons.security, "Security"),
-                          _buildItem(
-                            context,
-                            Icons.notifications,
-                            "Notifications",
-                          ),
-                          _buildItem(context, Icons.lock, "Privacy"),
+                          _buildItem(context, Icons.security, "Bảo mật"),
+                          _buildItem(context, Icons.notifications, "Thông báo"),
+                          _buildItem(context, Icons.lock, "Riêng tư"),
                         ],
                       ),
                     ),

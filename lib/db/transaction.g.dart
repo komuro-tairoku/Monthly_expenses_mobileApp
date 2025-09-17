@@ -20,19 +20,22 @@ class TransactionItemAdapter extends TypeAdapter<TransactionItem> {
       label: fields[0] as String,
       amount: fields[1] as double,
       isIncome: fields[2] as bool,
+      category: fields[3] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, TransactionItem obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.label)
       ..writeByte(1)
       ..write(obj.amount)
       ..writeByte(2)
-      ..write(obj.isIncome);
+      ..write(obj.isIncome)
+      ..writeByte(3)
+      ..write(obj.category);
   }
 
   @override

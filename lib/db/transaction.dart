@@ -13,9 +13,12 @@ class TransactionItem extends HiveObject {
   @HiveField(2)
   final bool isIncome;
 
+  @HiveField(3)
+  final String? category;
   TransactionItem({
     required this.label,
     required this.amount,
     required this.isIncome,
+    this.category,
   });
 }

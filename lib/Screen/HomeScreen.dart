@@ -268,13 +268,17 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: labelController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
-                style: const TextStyle(color: Colors.black, fontSize: 18),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall!.copyWith(fontSize: 18),
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Số tiền"),
-                style: const TextStyle(color: Colors.black, fontSize: 18),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall!.copyWith(fontSize: 18),
               ),
             ],
           ),
