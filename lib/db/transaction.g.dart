@@ -21,13 +21,14 @@ class TransactionItemAdapter extends TypeAdapter<TransactionItem> {
       amount: fields[1] as double,
       isIncome: fields[2] as bool,
       category: fields[3] as String?,
+      date: fields[4] as DateTime,
     );
   }
 
   @override
   void write(BinaryWriter writer, TransactionItem obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.label)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class TransactionItemAdapter extends TypeAdapter<TransactionItem> {
       ..writeByte(2)
       ..write(obj.isIncome)
       ..writeByte(3)
-      ..write(obj.category);
+      ..write(obj.category)
+      ..writeByte(4)
+      ..write(obj.date);
   }
 
   @override

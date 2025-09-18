@@ -1,9 +1,7 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:monthly_expenses_mobile_app/Screen/HomeScreen.dart';
 import 'package:monthly_expenses_mobile_app/db/transaction.dart';
-import 'HomeScreen.dart';
 import 'bottomNavBar.dart';
 
 class bottomSheet extends StatefulWidget {
@@ -256,13 +254,18 @@ class _bottomSheetState extends State<bottomSheet> {
                       } else if (index == 11) {
                         return ElevatedButton(
                           onPressed: () {
-                            if (amount.isNotEmpty && selectedCategory != null) {
+                            if (amount.isNotEmpty &&
+                                double.tryParse(amount) != null &&
+                                double.parse(amount) > 0 &&
+                                selectedCategory != null) {
                               final transaction = TransactionItem(
                                 label: note.isNotEmpty
                                     ? note
                                     : selectedCategory!,
-                                amount: double.tryParse(amount) ?? 0,
+                                amount: double.parse(amount),
                                 isIncome: value == 1,
+                                category: selectedCategory,
+                                date: DateTime.now()
                               );
                               final box = Hive.box<TransactionItem>(
                                 'transactions',
@@ -307,7 +310,10 @@ class _bottomSheetState extends State<bottomSheet> {
                         onPressed: () => addNumber("${index + 1}"),
                         child: Text(
                           "${index + 1}",
-                          style: TextStyle(fontSize: 20),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       );
                     },

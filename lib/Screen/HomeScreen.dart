@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:monthly_expenses_mobile_app/db/transaction.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,6 +17,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _formatAmount(double value) {
     return value.toStringAsFixed(0);
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return "Không rõ ngày";
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
   }
 
   @override
@@ -92,7 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
               if (transactions.isEmpty)
                 const Expanded(
                   child: Center(
@@ -143,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             title: Text(item.label),
                             subtitle: Text(
-                              item.isIncome ? "Thu nhập" : "Chi tiêu",
+                              "${item.isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(item.date)}",
                             ),
                             trailing: Text(
                               "${_formatAmount(item.amount)} đ",
@@ -296,6 +301,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: newLabel.isNotEmpty ? newLabel : item.label,
                   amount: newAmount,
                   isIncome: item.isIncome,
+                  category: item.category,
+                  date: item.date,
                 );
 
                 transactionBox.putAt(index, updated);

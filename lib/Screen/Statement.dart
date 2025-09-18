@@ -44,9 +44,14 @@ class _StatementState extends State<Statement> {
       body: ValueListenableBuilder(
         valueListenable: transactionBox.listenable(),
         builder: (context, Box<TransactionItem> box, _) {
-          final transactions = box.values.toList();
+          final allTransactions = box.values.toList();
 
-          // Tính tổng thu / chi
+          final transactions = allTransactions.where((t) {
+            return t.date?.year == _selectedDate.year &&
+                t.date?.month == _selectedDate.month &&
+                t.date?.day == _selectedDate.day;
+          }).toList();
+
           double totalIncome = 0;
           double totalExpense = 0;
 
@@ -72,7 +77,7 @@ class _StatementState extends State<Statement> {
               ),
               const SizedBox(height: 20),
 
-              // Luôn hiển thị PieChart
+              // PieChart
               SizedBox(
                 height: 200,
                 child: PieChart(
@@ -130,7 +135,7 @@ class _StatementState extends State<Statement> {
                 const Padding(
                   padding: EdgeInsets.all(20),
                   child: Text(
-                    "Chưa có dữ liệu giao dịch",
+                    "Không có giao dịch trong ngày này",
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),

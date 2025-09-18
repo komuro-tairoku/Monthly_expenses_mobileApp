@@ -15,10 +15,15 @@ class TransactionItem extends HiveObject {
 
   @HiveField(3)
   final String? category;
+
+  @HiveField(4)
+  final DateTime? date;
+
   TransactionItem({
     required this.label,
     required this.amount,
     required this.isIncome,
     this.category,
-  });
+    DateTime? date,
+  }) : date = date ?? DateTime.now();
 }

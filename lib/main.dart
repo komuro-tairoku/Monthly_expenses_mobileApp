@@ -11,8 +11,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionItemAdapter());
+
+  // Mở Hive box
   await Hive.openBox('settings');
   await Hive.openBox<TransactionItem>('transactions');
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -22,6 +25,9 @@ class MyApp extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appThemeState = ref.watch(appThemeStateNotifier);
+    final settingsBox = Hive.box('settings');
+
+    bool seenIntro = settingsBox.get('seenIntro', defaultValue: false);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -31,7 +37,7 @@ class MyApp extends HookConsumerWidget {
       themeMode: appThemeState.isDarkModeEnable
           ? ThemeMode.dark
           : ThemeMode.light,
-      home: const IntroPage(),
+      home: seenIntro ? const Home() : const IntroPage(),
       routes: {'/home': (context) => const Home()},
     );
   }

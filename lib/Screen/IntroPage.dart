@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
@@ -15,7 +16,7 @@ class _IntroPageState extends State<IntroPage> {
     return IntroductionScreen(
       pages: [
         PageViewModel(
-          titleWidget: Text(
+          titleWidget: const Text(
             "Chào mừng đến với",
             style: TextStyle(
               color: Color(0xFF6B43FF),
@@ -29,7 +30,7 @@ class _IntroPageState extends State<IntroPage> {
               context,
             ).textTheme.bodyMedium!.copyWith(fontSize: 25),
           ),
-          image: Center(
+          image: const Center(
             child: Icon(
               Icons.monetization_on_rounded,
               size: 150,
@@ -38,7 +39,7 @@ class _IntroPageState extends State<IntroPage> {
           ),
         ),
         PageViewModel(
-          titleWidget: Text(
+          titleWidget: const Text(
             "Nơi bạn có thể",
             style: TextStyle(
               color: Color(0xFF6B43FF),
@@ -78,7 +79,7 @@ class _IntroPageState extends State<IntroPage> {
           ),
         ),
         PageViewModel(
-          titleWidget: Text(
+          titleWidget: const Text(
             "Giao diện thân thiện",
             style: TextStyle(
               color: Color(0xFF6B43FF),
@@ -124,7 +125,7 @@ class _IntroPageState extends State<IntroPage> {
           ),
         ),
         PageViewModel(
-          titleWidget: Text(
+          titleWidget: const Text(
             "Bạn đã sẵn sàng?",
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -140,7 +141,7 @@ class _IntroPageState extends State<IntroPage> {
                 context,
               ).textTheme.bodyMedium!.copyWith(fontSize: 25),
               children: [
-                TextSpan(
+                const TextSpan(
                   text: "tiếp tục",
                   style: TextStyle(
                     color: Color(0xFF6B43FF),
@@ -157,7 +158,6 @@ class _IntroPageState extends State<IntroPage> {
             ),
             textAlign: TextAlign.center,
           ),
-
           image: Center(
             child: Icon(
               Icons.download_done_rounded,
@@ -176,6 +176,8 @@ class _IntroPageState extends State<IntroPage> {
         ),
       ),
       onDone: () {
+        final settingsBox = Hive.box('settings');
+        settingsBox.put('seenIntro', true);
         Navigator.of(context).pushReplacementNamed('/home');
       },
       showSkipButton: true,
