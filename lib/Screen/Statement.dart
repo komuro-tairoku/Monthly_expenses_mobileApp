@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -52,117 +53,103 @@ class _StatementState extends State<Statement> {
                 t.date?.day == _selectedDate.day;
           }).toList();
 
-          double totalIncome = 0;
-          double totalExpense = 0;
-
-          for (var t in transactions) {
-            if (t.isIncome) {
-              totalIncome += t.amount;
-            } else {
-              totalExpense += t.amount;
-            }
+          if (transactions.isEmpty) {
+            return const Center(
+              child: Text("Không có giao dịch trong ngày này",
+                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+            );
           }
 
-          double total = totalIncome + totalExpense;
+          // Nhóm theo category
+          final Map<String, double> categoryTotals = {};
+          for (var t in transactions) {
+            final cat = t.category ?? (t.isIncome ? "Khác (Thu)" : "Khác (Chi)");
+            categoryTotals[cat] = (categoryTotals[cat] ?? 0) + t.amount;
+          }
 
-          return Column(
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                "Ngày: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-                style: const TextStyle(
-                  fontSize: 18,
+          final total = categoryTotals.values.fold(0.0, (a, b) => a + b);
+
+          //Tạo PieChart sections
+          final colors = [
+            Colors.green,
+            Colors.red,
+            Colors.blue,
+            Colors.orange,
+            Colors.purple,
+            Colors.cyan,
+            Colors.teal,
+            Colors.amber,
+            Colors.pink,
+            Colors.indigo,
+          ];
+
+          final sections = <PieChartSectionData>[];
+          int colorIndex = 0;
+
+          categoryTotals.forEach((category, amount) {
+            final percentage = (amount / total * 100);
+            sections.add(
+              PieChartSectionData(
+                color: colors[colorIndex % colors.length],
+                value: amount,
+                radius: 70,
+                title: "${percentage.toStringAsFixed(1)}%",
+                titleStyle: const TextStyle(
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 20),
+            );
+            colorIndex++;
+          });
 
-              // PieChart
-              SizedBox(
-                height: 200,
-                child: PieChart(
-                  PieChartData(
-                    sections: [
-                      PieChartSectionData(
-                        color: Colors.green,
-                        value: totalIncome,
-                        title:
-                            "Thu\n${total == 0 ? 0 : (totalIncome / total * 100).toStringAsFixed(1)}%",
-                        radius: 70,
-                        titleStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      PieChartSectionData(
-                        color: Colors.red,
-                        value: totalExpense,
-                        title:
-                            "Chi\n${total == 0 ? 0 : (totalExpense / total * 100).toStringAsFixed(1)}%",
-                        radius: 70,
-                        titleStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                Text(
+                  "Ngày: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 30),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    _buildSummaryRow("Tổng thu:", totalIncome, Colors.green),
-                    const SizedBox(height: 10),
-                    _buildSummaryRow("Tổng chi:", totalExpense, Colors.red),
-                    const SizedBox(height: 10),
-                    _buildSummaryRow(
-                      "Còn lại:",
-                      totalIncome - totalExpense,
-                      Colors.blue,
-                    ),
-                  ],
+                // Biểu đồ
+                SizedBox(
+                  height: 250,
+                  child: PieChart(PieChartData(sections: sections)),
                 ),
-              ),
 
-              if (transactions.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text(
-                    "Không có giao dịch trong ngày này",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                const SizedBox(height: 20),
+
+                //Danh sách chi tiết
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: categoryTotals.entries.map((e) {
+                      final color = colors[
+                      categoryTotals.keys.toList().indexOf(e.key) %
+                          colors.length];
+                      return ListTile(
+                        leading: CircleAvatar(backgroundColor: color),
+                        title: Text(e.key),
+                        trailing: Text(
+                          "${e.value.toStringAsFixed(0)} đ",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-            ],
+              ],
+            ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, double amount, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        Text(
-          "${amount.toStringAsFixed(0)} đ",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
     );
   }
 }
