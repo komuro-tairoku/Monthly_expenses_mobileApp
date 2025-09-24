@@ -4,9 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:monthly_expenses_mobile_app/Screen/themeProvider.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 
 class User extends ConsumerStatefulWidget {

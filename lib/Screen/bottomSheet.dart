@@ -1,7 +1,5 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:monthly_expenses_mobile_app/db/transaction.dart';
 import 'bottomNavBar.dart';
 
 class bottomSheet extends StatefulWidget {
@@ -265,7 +263,7 @@ class _bottomSheetState extends State<bottomSheet> {
                                 amount: double.parse(amount),
                                 isIncome: value == 1,
                                 category: selectedCategory,
-                                date: DateTime.now()
+                                date: DateTime.now(),
                               );
                               final box = Hive.box<TransactionItem>(
                                 'transactions',

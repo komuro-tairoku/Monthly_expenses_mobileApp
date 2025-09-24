@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/legacy.dart';
 
 final appThemeStateNotifier = ChangeNotifierProvider((ref) => AppThemeState());

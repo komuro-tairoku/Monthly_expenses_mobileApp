@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "200895585243",
+    "project_id": "monthly-expenses-mobile-app",
+    "storage_bucket": "monthly-expenses-mobile-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:200895585243:android:a264e47486230324a1e5fe",
+        "android_client_info": {
+          "package_name": "com.example.monthly_expenses_mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNVS_WOA46hfIgiyD3I59WVYN58GvOtUc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

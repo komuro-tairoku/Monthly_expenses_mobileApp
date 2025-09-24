@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:monthly_expenses_mobile_app/db/transaction.dart';
 
 class Statement extends StatefulWidget {
   const Statement({super.key});
@@ -55,15 +53,18 @@ class _StatementState extends State<Statement> {
 
           if (transactions.isEmpty) {
             return const Center(
-              child: Text("Không có giao dịch trong ngày này",
-                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+              child: Text(
+                "Không có giao dịch trong ngày này",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
             );
           }
 
           // Nhóm theo category
           final Map<String, double> categoryTotals = {};
           for (var t in transactions) {
-            final cat = t.category ?? (t.isIncome ? "Khác (Thu)" : "Khác (Chi)");
+            final cat =
+                t.category ?? (t.isIncome ? "Khác (Thu)" : "Khác (Chi)");
             categoryTotals[cat] = (categoryTotals[cat] ?? 0) + t.amount;
           }
 
@@ -130,16 +131,18 @@ class _StatementState extends State<Statement> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: categoryTotals.entries.map((e) {
-                      final color = colors[
-                      categoryTotals.keys.toList().indexOf(e.key) %
-                          colors.length];
+                      final color =
+                          colors[categoryTotals.keys.toList().indexOf(e.key) %
+                              colors.length];
                       return ListTile(
                         leading: CircleAvatar(backgroundColor: color),
                         title: Text(e.key),
                         trailing: Text(
                           "${e.value.toStringAsFixed(0)} đ",
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       );
                     }).toList(),
