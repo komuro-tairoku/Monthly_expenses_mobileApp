@@ -7,10 +7,17 @@ import 'Screen/bottomNavBar.dart';
 import 'Screen/IntroPage.dart';
 import 'Screen/theme.dart';
 import 'Screen/themeProvider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 🔑 Đảm bảo luôn có user (ẩn danh nếu chưa đăng nhập)
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    await FirebaseAuth.instance.signInAnonymously();
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -34,9 +41,15 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   Future<void> _checkSeenIntro() async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _loading = false);
+        return;
+      }
+
       final doc = await FirebaseFirestore.instance
           .collection("settings")
-          .doc("intro")
+          .doc(user.uid)
           .get();
 
       if (doc.exists && doc.data()?['seenIntro'] == true) {
@@ -46,10 +59,14 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     } catch (e) {
       print("⚠️ Firestore error: $e");
+    } finally {
+      // 🚀 Đảm bảo luôn dừng loading
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
-    setState(() {
-      _loading = false;
-    });
   }
 
   @override

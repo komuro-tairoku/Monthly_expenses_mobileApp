@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,12 +23,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text("Chưa đăng nhập")));
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text("Ghi chú Thu Chi"),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 2,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('transactions')
-            .orderBy('date', descending: true)
+            .collection("transactions")
+            .doc(user.uid)
+            .collection("items")
+            .orderBy("date", descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -61,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              // Header
+              // Header thống kê
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -72,43 +87,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: SafeArea(
                   bottom: false,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Center(
-                        child: Text(
-                          'Ghi Chú Thu Chi',
-                          style: TextStyle(
-                            color: Color(0xFFE0E0E0),
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      _buildStatCard(
+                        label: 'Tổng thu',
+                        value: _formatAmount(totalIncome),
+                        valueColor: Colors.greenAccent.shade400,
+                        context: context,
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatCard(
-                            label: 'Tổng thu',
-                            value: _formatAmount(totalIncome),
-                            valueColor: Colors.greenAccent.shade400,
-                            context: context,
-                          ),
-                          _buildStatCard(
-                            label: 'Chi tiêu',
-                            value: _formatAmount(totalExpense),
-                            valueColor: Colors.redAccent.shade400,
-                            context: context,
-                          ),
-                          _buildStatCard(
-                            label: 'Còn lại',
-                            value: _formatAmount(balance),
-                            valueColor: Colors.white,
-                            context: context,
-                            emphasize: true,
-                          ),
-                        ],
+                      _buildStatCard(
+                        label: 'Chi tiêu',
+                        value: _formatAmount(totalExpense),
+                        valueColor: Colors.redAccent.shade400,
+                        context: context,
+                      ),
+                      _buildStatCard(
+                        label: 'Còn lại',
+                        value: _formatAmount(balance),
+                        valueColor: Colors.white,
+                        context: context,
+                        emphasize: true,
                       ),
                     ],
                   ),
@@ -122,6 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (context, index) {
                     final doc = transactions[index];
                     final data = doc.data() as Map<String, dynamic>;
+
+                    final isIncome = data['isIncome'] ?? false;
 
                     return Dismissible(
                       key: ValueKey(doc.id),
@@ -139,7 +140,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       onDismissed: (_) {
                         FirebaseFirestore.instance
-                            .collection('transactions')
+                            .collection("transactions")
+                            .doc(user.uid)
+                            .collection("items")
                             .doc(doc.id)
                             .delete();
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,28 +156,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: ListTile(
                           leading: Icon(
-                            data['isIncome'] ?? false
+                            isIncome
                                 ? Icons.arrow_downward
                                 : Icons.arrow_upward,
-                            color: data['isIncome'] ?? false
-                                ? Colors.green
-                                : Colors.red,
+                            color: isIncome ? Colors.green : Colors.red,
                           ),
                           title: Text(data['label'] ?? ""),
                           subtitle: Text(
-                            "${(data['isIncome'] ?? false) ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
+                            "${(isIncome) ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
                           ),
                           trailing: Text(
                             "${_formatAmount((data['amount'] as num).toDouble())} đ",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: data['isIncome'] ?? false
-                                  ? Colors.green
-                                  : Colors.red,
+                              color: isIncome ? Colors.green : Colors.red,
                             ),
                           ),
                           onLongPress: () {
-                            _showOptions(context, doc.id, data);
+                            _showOptions(context, user.uid, doc.id, data);
                           },
                         ),
                       ),
@@ -231,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showOptions(
     BuildContext context,
+    String uid,
     String docId,
     Map<String, dynamic> data,
   ) {
@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text("Sửa"),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _showEditDialog(docId, data);
+                  _showEditDialog(uid, docId, data);
                 },
               ),
               ListTile(
@@ -254,7 +254,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () {
                   Navigator.pop(ctx);
                   FirebaseFirestore.instance
-                      .collection('transactions')
+                      .collection("transactions")
+                      .doc(uid)
+                      .collection("items")
                       .doc(docId)
                       .delete();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -277,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showEditDialog(String docId, Map<String, dynamic> data) {
+  void _showEditDialog(String uid, String docId, Map<String, dynamic> data) {
     final labelController = TextEditingController(text: data['label'] ?? "");
     final amountController = TextEditingController(
       text: (data['amount']).toString(),
@@ -314,7 +316,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     double.tryParse(amountController.text.trim()) ?? 0;
 
                 FirebaseFirestore.instance
-                    .collection('transactions')
+                    .collection("transactions")
+                    .doc(uid)
+                    .collection("items")
                     .doc(docId)
                     .update({
                       "label": newLabel.isNotEmpty ? newLabel : data['label'],

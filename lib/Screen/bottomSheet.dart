@@ -1,6 +1,7 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'bottomNavBar.dart';
 
 class bottomSheet extends StatefulWidget {
@@ -257,48 +258,61 @@ class _bottomSheetState extends State<bottomSheet> {
                                 double.tryParse(amount) != null &&
                                 double.parse(amount) > 0 &&
                                 selectedCategory != null) {
-                              // 🔥 Lưu vào Firestore thay vì Hive
-                              await FirebaseFirestore.instance
-                                  .collection('transactions')
-                                  .add({
-                                    'label': note.isNotEmpty
-                                        ? note
-                                        : selectedCategory!,
-                                    'amount': double.parse(amount),
-                                    'isIncome': value == 1,
-                                    'category': selectedCategory,
-                                    'date': DateTime.now(),
-                                  });
+                              try {
+                                final user = FirebaseAuth.instance.currentUser;
 
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text("Thành công"),
-                                  content: Text(
-                                    value == 1
-                                        ? "Đã thêm thu nhập!"
-                                        : "Đã thêm chi tiêu!",
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(ctx).pop();
-                                        Navigator.of(context).pop();
-                                        Navigator.of(this.context).pop();
+                                if (user == null) {
+                                  throw Exception("User chưa đăng nhập!");
+                                }
 
-                                        Navigator.of(
-                                          this.context,
-                                        ).pushReplacement(
-                                          MaterialPageRoute(
-                                            builder: (_) => const Home(),
-                                          ),
-                                        );
-                                      },
-                                      child: const Text("OK"),
+                                // 🔥 Lưu đúng path: transactions/{uid}/items/{autoId}
+                                await FirebaseFirestore.instance
+                                    .collection('transactions')
+                                    .doc(user.uid)
+                                    .collection('items')
+                                    .add({
+                                      'label': note.isNotEmpty
+                                          ? note
+                                          : selectedCategory!,
+                                      'amount': double.parse(amount),
+                                      'isIncome': value == 1,
+                                      'category': selectedCategory,
+                                      'date':
+                                          Timestamp.now(), // ✅ dùng Timestamp để orderBy
+                                    });
+
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text("Thành công"),
+                                    content: Text(
+                                      value == 1
+                                          ? "Đã thêm thu nhập!"
+                                          : "Đã thêm chi tiêu!",
                                     ),
-                                  ],
-                                ),
-                              );
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(ctx).pop();
+                                          Navigator.of(context).pop();
+                                          Navigator.of(this.context).pop();
+
+                                          Navigator.of(
+                                            this.context,
+                                          ).pushReplacement(
+                                            MaterialPageRoute(
+                                              builder: (_) => const Home(),
+                                            ),
+                                          );
+                                        },
+                                        child: const Text("OK"),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } catch (e) {
+                                print("❌ Firestore error: $e");
+                              }
                             }
                           },
                           child: const Icon(Icons.check),
