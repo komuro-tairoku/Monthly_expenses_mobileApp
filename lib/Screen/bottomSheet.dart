@@ -1,5 +1,6 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'bottomNavBar.dart';
 
 class bottomSheet extends StatefulWidget {
@@ -251,24 +252,23 @@ class _bottomSheetState extends State<bottomSheet> {
                         );
                       } else if (index == 11) {
                         return ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             if (amount.isNotEmpty &&
                                 double.tryParse(amount) != null &&
                                 double.parse(amount) > 0 &&
                                 selectedCategory != null) {
-                              final transaction = TransactionItem(
-                                label: note.isNotEmpty
-                                    ? note
-                                    : selectedCategory!,
-                                amount: double.parse(amount),
-                                isIncome: value == 1,
-                                category: selectedCategory,
-                                date: DateTime.now(),
-                              );
-                              final box = Hive.box<TransactionItem>(
-                                'transactions',
-                              );
-                              box.add(transaction);
+                              // 🔥 Lưu vào Firestore thay vì Hive
+                              await FirebaseFirestore.instance
+                                  .collection('transactions')
+                                  .add({
+                                    'label': note.isNotEmpty
+                                        ? note
+                                        : selectedCategory!,
+                                    'amount': double.parse(amount),
+                                    'isIncome': value == 1,
+                                    'category': selectedCategory,
+                                    'date': DateTime.now(),
+                                  });
 
                               showDialog(
                                 context: context,

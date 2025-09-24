@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -8,41 +10,58 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final Box<TransactionItem> transactionBox = Hive.box<TransactionItem>(
-    'transactions',
-  );
-
   String _formatAmount(double value) {
     return value.toStringAsFixed(0);
   }
 
-  String _formatDate(DateTime? date) {
+  String _formatDate(Timestamp? date) {
     if (date == null) return "Không rõ ngày";
-    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+    final d = date.toDate();
+    return DateFormat('dd/MM/yyyy HH:mm').format(d);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: ValueListenableBuilder(
-        valueListenable: transactionBox.listenable(),
-        builder: (context, Box<TransactionItem> box, _) {
-          final transactions = box.values.toList().cast<TransactionItem>();
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('transactions')
+            .orderBy('date', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                "Chưa có giao dịch nào",
+                style: TextStyle(fontSize: 20),
+              ),
+            );
+          }
+
+          final transactions = snapshot.data!.docs;
 
           double totalIncome = 0;
           double totalExpense = 0;
-          for (var t in transactions) {
-            if (t.isIncome) {
-              totalIncome += t.amount;
+          for (var doc in transactions) {
+            final data = doc.data() as Map<String, dynamic>;
+            final amount = (data['amount'] as num).toDouble();
+            final isIncome = data['isIncome'] ?? false;
+
+            if (isIncome) {
+              totalIncome += amount;
             } else {
-              totalExpense += t.amount;
+              totalExpense += amount;
             }
           }
           double balance = totalIncome - totalExpense;
 
           return Column(
             children: [
+              // Header
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -56,10 +75,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Center(
+                      const Center(
                         child: Text(
                           'Ghi Chú Thu Chi',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Color(0xFFE0E0E0),
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -95,76 +114,74 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              if (transactions.isEmpty)
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      "Chưa có giao dịch nào",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: transactions.length,
-                    itemBuilder: (context, index) {
-                      final item = transactions[index];
 
-                      return Dismissible(
-                        key: ValueKey(item.key),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.only(left: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
+              // Danh sách giao dịch
+              Expanded(
+                child: ListView.builder(
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final doc = transactions[index];
+                    final data = doc.data() as Map<String, dynamic>;
+
+                    return Dismissible(
+                      key: ValueKey(doc.id),
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      secondaryBackground: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      onDismissed: (_) {
+                        FirebaseFirestore.instance
+                            .collection('transactions')
+                            .doc(doc.id)
+                            .delete();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Đã xóa giao dịch")),
+                        );
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                        secondaryBackground: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (_) {
-                          box.deleteAt(index);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Đã xóa giao dịch")),
-                          );
-                        },
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                        child: ListTile(
+                          leading: Icon(
+                            data['isIncome'] ?? false
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
+                            color: data['isIncome'] ?? false
+                                ? Colors.green
+                                : Colors.red,
                           ),
-                          child: ListTile(
-                            leading: Icon(
-                              item.isIncome
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
-                              color: item.isIncome ? Colors.green : Colors.red,
-                            ),
-                            title: Text(item.label),
-                            subtitle: Text(
-                              "${item.isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(item.date)}",
-                            ),
-                            trailing: Text(
-                              "${_formatAmount(item.amount)} đ",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: item.isIncome
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
-                            ),
-                            onLongPress: () {
-                              _showOptions(context, item, index);
-                            },
+                          title: Text(data['label'] ?? ""),
+                          subtitle: Text(
+                            "${(data['isIncome'] ?? false) ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
                           ),
+                          trailing: Text(
+                            "${_formatAmount((data['amount'] as num).toDouble())} đ",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: data['isIncome'] ?? false
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                          onLongPress: () {
+                            _showOptions(context, doc.id, data);
+                          },
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
             ],
           );
         },
@@ -212,7 +229,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showOptions(BuildContext context, TransactionItem item, int index) {
+  void _showOptions(
+    BuildContext context,
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
@@ -224,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text("Sửa"),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _showEditDialog(item, index);
+                  _showEditDialog(docId, data);
                 },
               ),
               ListTile(
@@ -232,7 +253,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text("Xóa"),
                 onTap: () {
                   Navigator.pop(ctx);
-                  transactionBox.deleteAt(index);
+                  FirebaseFirestore.instance
+                      .collection('transactions')
+                      .doc(docId)
+                      .delete();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text("Đã xóa giao dịch"),
@@ -253,10 +277,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showEditDialog(TransactionItem item, int index) {
-    final labelController = TextEditingController(text: item.label);
+  void _showEditDialog(String docId, Map<String, dynamic> data) {
+    final labelController = TextEditingController(text: data['label'] ?? "");
     final amountController = TextEditingController(
-      text: item.amount.toStringAsFixed(0),
+      text: (data['amount']).toString(),
     );
 
     showDialog(
@@ -270,17 +294,11 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: labelController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall!.copyWith(fontSize: 18),
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Số tiền"),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall!.copyWith(fontSize: 18),
               ),
             ],
           ),
@@ -292,17 +310,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () {
                 final newLabel = labelController.text.trim();
-                final newAmount = double.tryParse(amountController.text) ?? 0;
+                final newAmount =
+                    double.tryParse(amountController.text.trim()) ?? 0;
 
-                final updated = TransactionItem(
-                  label: newLabel.isNotEmpty ? newLabel : item.label,
-                  amount: newAmount,
-                  isIncome: item.isIncome,
-                  category: item.category,
-                  date: item.date,
-                );
+                FirebaseFirestore.instance
+                    .collection('transactions')
+                    .doc(docId)
+                    .update({
+                      "label": newLabel.isNotEmpty ? newLabel : data['label'],
+                      "amount": newAmount,
+                      "isIncome": data['isIncome'],
+                      "category": data['category'],
+                      "date": data['date'],
+                    });
 
-                transactionBox.putAt(index, updated);
                 Navigator.pop(context);
               },
               child: const Text("Lưu"),

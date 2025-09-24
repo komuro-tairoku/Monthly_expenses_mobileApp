@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'HomeScreen.dart';
 import 'Statement.dart';
 import 'Budget.dart';
-import 'User.dart';
+import 'UserPage.dart';
 import 'bottomSheet.dart';
 
 class Home extends StatefulWidget {
@@ -16,12 +16,14 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
+
   static final List<Widget> _screens = [
     const HomeScreen(),
-    Statement(),
+    const Statement(),
     const Budget(),
-    const User(),
+    const UserPage(),
   ];
+
   void _onItemTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -42,7 +44,7 @@ class _HomeState extends State<Home> {
             children: [
               buildNavBarItem(CupertinoIcons.house_alt_fill, 'Home', 0),
               buildNavBarItem(CupertinoIcons.chart_pie_fill, 'Báo cáo', 1),
-              SizedBox(width: 25),
+              const SizedBox(width: 25),
               buildNavBarItem(
                 CupertinoIcons.money_dollar_circle_fill,
                 'Ngân sách',
@@ -53,13 +55,15 @@ class _HomeState extends State<Home> {
           ),
         ),
       ),
+
+      // FAB thêm giao dịch → mở bottomSheet
       floatingActionButton: RawMaterialButton(
         onPressed: () {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             builder: (context) {
-              return const bottomSheet();
+              return const bottomSheet(); // cần sửa bottomSheet để lưu Firestore
             },
           );
         },
@@ -78,7 +82,7 @@ class _HomeState extends State<Home> {
   }
 
   Widget buildNavBarItem(IconData icon, String label, int index) {
-    final bool isSlected = _selectedIndex == index;
+    final bool isSelected = _selectedIndex == index;
     return InkWell(
       onTap: () => _onItemTap(index),
       child: Column(
@@ -86,11 +90,18 @@ class _HomeState extends State<Home> {
         children: [
           Icon(
             icon,
-            color: _selectedIndex == index
-                ? Color(0xFF6B43FF)
-                : Color(0xFF828282),
+            color: isSelected
+                ? const Color(0xFF6B43FF)
+                : const Color(0xFF828282),
           ),
-          Text(label),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? const Color(0xFF6B43FF)
+                  : const Color(0xFF828282),
+            ),
+          ),
         ],
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class IntroPage extends StatefulWidget {
   const IntroPage({super.key});
@@ -10,6 +12,17 @@ class IntroPage extends StatefulWidget {
 }
 
 class _IntroPageState extends State<IntroPage> {
+  Future<void> _saveSeenIntro() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      user = (await FirebaseAuth.instance.signInAnonymously()).user;
+    }
+
+    await FirebaseFirestore.instance.collection('settings').doc(user!.uid).set({
+      'seenIntro': true,
+    }, SetOptions(merge: true));
+  }
+
   @override
   Widget build(BuildContext context) {
     return IntroductionScreen(
@@ -174,10 +187,11 @@ class _IntroPageState extends State<IntroPage> {
           fontSize: 25,
         ),
       ),
-      onDone: () {
-        final settingsBox = Hive.box('settings');
-        settingsBox.put('seenIntro', true);
-        Navigator.of(context).pushReplacementNamed('/home');
+      onDone: () async {
+        await _saveSeenIntro();
+        if (context.mounted) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
       },
       showSkipButton: true,
       skip: const Text(

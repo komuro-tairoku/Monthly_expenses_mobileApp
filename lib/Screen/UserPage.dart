@@ -3,19 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:monthly_expenses_mobile_app/Screen/themeProvider.dart';
 import 'package:path/path.dart' as p;
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class User extends ConsumerStatefulWidget {
-  const User({super.key});
+import 'themeProvider.dart';
+
+class UserPage extends ConsumerStatefulWidget {
+  const UserPage({super.key});
 
   @override
-  ConsumerState<User> createState() => _UserState();
+  ConsumerState<UserPage> createState() => _UserPageState();
 }
 
-class _UserState extends ConsumerState<User> {
+class _UserPageState extends ConsumerState<UserPage> {
   File? _avatarImage;
+  String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
   final double circleSize = 150;
 
@@ -25,14 +30,22 @@ class _UserState extends ConsumerState<User> {
     _loadAvatar();
   }
 
-  void _loadAvatar() {
-    final box = Hive.box('settings');
-    final String? path = box.get('avatarPath') as String?;
-    if (path != null && path.isNotEmpty) {
-      final f = File(path);
-      if (f.existsSync()) {
-        _avatarImage = f;
+  Future<void> _loadAvatar() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        setState(() {
+          _avatarUrl = doc.data()?["avatarUrl"] as String?;
+        });
       }
+    } catch (e) {
+      debugPrint("⚠️ Firestore error (load avatar): $e");
     }
   }
 
@@ -44,20 +57,28 @@ class _UserState extends ConsumerState<User> {
       );
       if (picked == null) return;
 
-      final appDir = await getApplicationDocumentsDirectory();
-      final fileName =
-          'avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}';
-      final savedImage = await File(
-        picked.path,
-      ).copy('${appDir.path}/$fileName');
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-      Hive.box('settings').put('avatarPath', savedImage.path);
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child("avatars")
+          .child("$uid${p.extension(picked.path)}");
+
+      await storageRef.putFile(File(picked.path));
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      // Save avatar URL to Firestore
+      await FirebaseFirestore.instance.collection("users").doc(uid).set({
+        "avatarUrl": downloadUrl,
+      }, SetOptions(merge: true));
 
       setState(() {
-        _avatarImage = savedImage;
+        _avatarImage = File(picked.path);
+        _avatarUrl = downloadUrl;
       });
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      debugPrint("⚠️ Error picking/uploading image: $e");
     }
   }
 
@@ -72,6 +93,7 @@ class _UserState extends ConsumerState<User> {
         children: [
           Column(
             children: [
+              // Header with theme switch
               Container(
                 height: 150,
                 color: Theme.of(context).primaryColor,
@@ -121,7 +143,7 @@ class _UserState extends ConsumerState<User> {
               Expanded(
                 child: Column(
                   children: [
-                    SizedBox(height: 100),
+                    const SizedBox(height: 100),
                     Text(
                       "Profile",
                       style: Theme.of(
@@ -139,14 +161,14 @@ class _UserState extends ConsumerState<User> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Acount",
+                            "Account",
                             style: Theme.of(context).textTheme.bodyMedium!
                                 .copyWith(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
-                          SizedBox(height: 21),
+                          const SizedBox(height: 21),
                           _buildItem(context, Icons.person, "Edit profile"),
                           _buildItem(context, Icons.security, "Bảo mật"),
                           _buildItem(context, Icons.notifications, "Thông báo"),
@@ -180,6 +202,7 @@ class _UserState extends ConsumerState<User> {
             ],
           ),
 
+          // Avatar
           Positioned(
             top: 90,
             left: MediaQuery.of(context).size.width / 2 - (circleSize / 2),
@@ -200,20 +223,23 @@ class _UserState extends ConsumerState<User> {
                         offset: Offset(0, 3),
                       ),
                     ],
-                    image: _avatarImage != null
-                        ? DecorationImage(
-                            image: FileImage(_avatarImage!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
                   ),
-                  child: _avatarImage == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Colors.deepPurple,
+                  child: _avatarImage != null
+                      ? ClipOval(
+                          child: Image.file(_avatarImage!, fit: BoxFit.cover),
                         )
-                      : null,
+                      : (_avatarUrl != null
+                            ? ClipOval(
+                                child: Image.network(
+                                  _avatarUrl!,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.deepPurple,
+                              )),
                 ),
 
                 Positioned(
@@ -247,10 +273,10 @@ class _UserState extends ConsumerState<User> {
 
 Widget _buildItem(BuildContext context, IconData icon, String text) {
   return Padding(
-    padding: EdgeInsetsGeometry.symmetric(vertical: 8),
+    padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
       children: [
-        Icon(icon, size: 22, color: Color(0xFF6B43FF)),
+        Icon(icon, size: 22, color: const Color(0xFF6B43FF)),
         const SizedBox(width: 12),
         Text(
           text,

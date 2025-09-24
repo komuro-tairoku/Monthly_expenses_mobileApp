@@ -1,6 +1,6 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Statement extends StatefulWidget {
   const Statement({super.key});
@@ -29,7 +29,12 @@ class _StatementState extends State<Statement> {
 
   @override
   Widget build(BuildContext context) {
-    final transactionBox = Hive.box<TransactionItem>('transactions');
+    final startOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
+    final endOfDay = startOfDay.add(const Duration(days: 1));
 
     return Scaffold(
       appBar: AppBar(
@@ -40,18 +45,17 @@ class _StatementState extends State<Statement> {
           IconButton(icon: const Icon(Icons.date_range), onPressed: _pickDate),
         ],
       ),
-      body: ValueListenableBuilder(
-        valueListenable: transactionBox.listenable(),
-        builder: (context, Box<TransactionItem> box, _) {
-          final allTransactions = box.values.toList();
-
-          final transactions = allTransactions.where((t) {
-            return t.date?.year == _selectedDate.year &&
-                t.date?.month == _selectedDate.month &&
-                t.date?.day == _selectedDate.day;
-          }).toList();
-
-          if (transactions.isEmpty) {
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("transactions")
+            .where("date", isGreaterThanOrEqualTo: startOfDay.toIso8601String())
+            .where("date", isLessThan: endOfDay.toIso8601String())
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
                 "Không có giao dịch trong ngày này",
@@ -60,17 +64,28 @@ class _StatementState extends State<Statement> {
             );
           }
 
+          // Lấy dữ liệu transactions từ Firestore
+          final transactions = snapshot.data!.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return {
+              "amount": (data["amount"] as num).toDouble(),
+              "category": data["category"] ?? "Khác",
+              "isIncome": data["isIncome"] ?? false,
+            };
+          }).toList();
+
           // Nhóm theo category
           final Map<String, double> categoryTotals = {};
           for (var t in transactions) {
             final cat =
-                t.category ?? (t.isIncome ? "Khác (Thu)" : "Khác (Chi)");
-            categoryTotals[cat] = (categoryTotals[cat] ?? 0) + t.amount;
+                t["category"] ?? (t["isIncome"] ? "Khác (Thu)" : "Khác (Chi)");
+            categoryTotals[cat] =
+                (categoryTotals[cat] ?? 0) + (t["amount"] as double);
           }
 
           final total = categoryTotals.values.fold(0.0, (a, b) => a + b);
 
-          //Tạo PieChart sections
+          // Tạo PieChart sections
           final colors = [
             Colors.green,
             Colors.red,
@@ -126,7 +141,7 @@ class _StatementState extends State<Statement> {
 
                 const SizedBox(height: 20),
 
-                //Danh sách chi tiết
+                // Danh sách chi tiết
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
