@@ -265,7 +265,6 @@ class _bottomSheetState extends State<bottomSheet> {
                                   throw Exception("User chưa đăng nhập!");
                                 }
 
-                                // 🔥 Lưu đúng path: transactions/{uid}/items/{autoId}
                                 await FirebaseFirestore.instance
                                     .collection('transactions')
                                     .doc(user.uid)
@@ -277,8 +276,7 @@ class _bottomSheetState extends State<bottomSheet> {
                                       'amount': double.parse(amount),
                                       'isIncome': value == 1,
                                       'category': selectedCategory,
-                                      'date':
-                                          Timestamp.now(), // ✅ dùng Timestamp để orderBy
+                                      'date': Timestamp.now(),
                                     });
 
                                 showDialog(

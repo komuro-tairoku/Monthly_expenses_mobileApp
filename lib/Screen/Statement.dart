@@ -64,7 +64,6 @@ class _StatementState extends State<Statement> {
             );
           }
 
-          // Lấy dữ liệu transactions từ Firestore
           final transactions = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return {
@@ -74,7 +73,6 @@ class _StatementState extends State<Statement> {
             };
           }).toList();
 
-          // Nhóm theo category
           final Map<String, double> categoryTotals = {};
           for (var t in transactions) {
             final cat =
@@ -85,7 +83,6 @@ class _StatementState extends State<Statement> {
 
           final total = categoryTotals.values.fold(0.0, (a, b) => a + b);
 
-          // Tạo PieChart sections
           final colors = [
             Colors.green,
             Colors.red,
@@ -133,7 +130,6 @@ class _StatementState extends State<Statement> {
                 ),
                 const SizedBox(height: 20),
 
-                // Biểu đồ
                 SizedBox(
                   height: 250,
                   child: PieChart(PieChartData(sections: sections)),
@@ -141,7 +137,6 @@ class _StatementState extends State<Statement> {
 
                 const SizedBox(height: 20),
 
-                // Danh sách chi tiết
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(

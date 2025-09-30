@@ -56,14 +56,13 @@ class _HomeState extends State<Home> {
         ),
       ),
 
-      // FAB thêm giao dịch → mở bottomSheet
       floatingActionButton: RawMaterialButton(
         onPressed: () {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             builder: (context) {
-              return const bottomSheet(); // cần sửa bottomSheet để lưu Firestore
+              return const bottomSheet();
             },
           );
         },

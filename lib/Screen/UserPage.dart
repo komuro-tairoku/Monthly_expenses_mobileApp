@@ -4,12 +4,18 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import 'themeProvider.dart';
+
+@HiveType(typeId: 1)
+class UserProfile extends HiveObject {
+  @HiveField(0)
+  String? avatarPath;
+
+  UserProfile({this.avatarPath});
+}
 
 class UserPage extends ConsumerStatefulWidget {
   const UserPage({super.key});
@@ -20,32 +26,28 @@ class UserPage extends ConsumerStatefulWidget {
 
 class _UserPageState extends ConsumerState<UserPage> {
   File? _avatarImage;
-  String? _avatarUrl;
   final ImagePicker _picker = ImagePicker();
   final double circleSize = 150;
+
+  Box<UserProfile>? _userBox;
 
   @override
   void initState() {
     super.initState();
-    _loadAvatar();
+    _initUserData();
   }
 
-  Future<void> _loadAvatar() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+  Future<void> _initUserData() async {
+    _userBox = await Hive.openBox<UserProfile>('users');
 
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
-      if (doc.exists) {
+    final userProfile = _userBox!.get('profile');
+    if (userProfile != null && userProfile.avatarPath != null) {
+      final file = File(userProfile.avatarPath!);
+      if (file.existsSync()) {
         setState(() {
-          _avatarUrl = doc.data()?["avatarUrl"] as String?;
+          _avatarImage = file;
         });
       }
-    } catch (e) {
-      debugPrint("⚠️ Firestore error (load avatar): $e");
     }
   }
 
@@ -57,43 +59,39 @@ class _UserPageState extends ConsumerState<UserPage> {
       );
       if (picked == null) return;
 
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName =
+          'avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(picked.path)}';
+      final savedImage = await File(
+        picked.path,
+      ).copy('${appDir.path}/$fileName');
 
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child("avatars")
-          .child("$uid${p.extension(picked.path)}");
+      final oldPath = _userBox!.get('profile')?.avatarPath;
+      if (oldPath != null && File(oldPath).existsSync()) {
+        try {
+          File(oldPath).deleteSync();
+        } catch (_) {}
+      }
 
-      await storageRef.putFile(File(picked.path));
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      // Save avatar URL to Firestore
-      await FirebaseFirestore.instance.collection("users").doc(uid).set({
-        "avatarUrl": downloadUrl,
-      }, SetOptions(merge: true));
+      final profile = UserProfile(avatarPath: savedImage.path);
+      await _userBox!.put('profile', profile);
 
       setState(() {
-        _avatarImage = File(picked.path);
-        _avatarUrl = downloadUrl;
+        _avatarImage = savedImage;
       });
     } catch (e) {
-      debugPrint("⚠️ Error picking/uploading image: $e");
+      debugPrint("⚠️ Error picking image: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final appThemeState = ref.watch(appThemeStateNotifier);
-    final themeNotifier = ref.read(appThemeStateNotifier);
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           Column(
             children: [
-              // Header with theme switch
               Container(
                 height: 150,
                 color: Theme.of(context).primaryColor,
@@ -104,42 +102,46 @@ class _UserPageState extends ConsumerState<UserPage> {
                     child: SizedBox(
                       width: 55,
                       height: 30,
-                      child: AnimatedToggleSwitch<bool>.dual(
-                        current: appThemeState.isDarkModeEnable,
-                        first: false,
-                        second: true,
-                        spacing: 6,
-                        borderWidth: 2.0,
-                        height: 30,
-                        onChanged: (b) => themeNotifier.toggleTheme(b),
-                        style: ToggleStyle(
-                          backgroundColor: Colors.grey[300],
-                          indicatorColor: appThemeState.isDarkModeEnable
-                              ? Colors.black
-                              : Colors.white,
-                          borderColor: Colors.transparent,
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              spreadRadius: 0.5,
-                              blurRadius: 1,
-                              offset: Offset(0, 1),
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final appThemeState = ref.watch(
+                            appThemeStateNotifier,
+                          );
+                          final themeNotifier = ref.read(
+                            appThemeStateNotifier.notifier,
+                          );
+
+                          return AnimatedToggleSwitch<bool>.dual(
+                            current: appThemeState.isDarkModeEnable,
+                            first: false,
+                            second: true,
+                            spacing: 6,
+                            borderWidth: 2.0,
+                            height: 30,
+                            onChanged: (b) => themeNotifier.toggleTheme(b),
+                            iconBuilder: (value) => value
+                                ? const Icon(Icons.dark_mode, size: 20)
+                                : const Icon(Icons.light_mode, size: 20),
+                            styleBuilder: (b) => ToggleStyle(
+                              backgroundColor: Colors.grey[300],
+                              indicatorColor: b ? Colors.black : Colors.yellow,
+                              borderColor: Colors.transparent,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  spreadRadius: 0.5,
+                                  blurRadius: 1,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        styleBuilder: (b) => ToggleStyle(
-                          indicatorColor: b ? Colors.black : Colors.yellow[600],
-                        ),
-                        iconBuilder: (value) => value
-                            ? const Icon(Icons.dark_mode, size: 20)
-                            : const Icon(Icons.light_mode, size: 20),
+                          );
+                        },
                       ),
                     ),
                   ),
                 ),
               ),
-
-              // Body
               Expanded(
                 child: Column(
                   children: [
@@ -178,7 +180,6 @@ class _UserPageState extends ConsumerState<UserPage> {
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SvgPicture.asset('assets/icons/crown.svg', width: 25),
                         const SizedBox(width: 6),
@@ -201,8 +202,6 @@ class _UserPageState extends ConsumerState<UserPage> {
               ),
             ],
           ),
-
-          // Avatar
           Positioned(
             top: 90,
             left: MediaQuery.of(context).size.width / 2 - (circleSize / 2),
@@ -228,20 +227,12 @@ class _UserPageState extends ConsumerState<UserPage> {
                       ? ClipOval(
                           child: Image.file(_avatarImage!, fit: BoxFit.cover),
                         )
-                      : (_avatarUrl != null
-                            ? ClipOval(
-                                child: Image.network(
-                                  _avatarUrl!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.person,
-                                size: 60,
-                                color: Colors.deepPurple,
-                              )),
+                      : const Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Colors.deepPurple,
+                        ),
                 ),
-
                 Positioned(
                   bottom: -4,
                   right: -4,

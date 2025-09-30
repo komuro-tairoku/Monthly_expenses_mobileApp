@@ -9,7 +9,7 @@ class appTheme {
       backgroundColor: Color(0xFF6B43FF),
       foregroundColor: Colors.white,
     ),
-    cardColor: Colors.grey[300],
+    cardColor: Color(0xFFF7F2FA),
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
       bodyMedium: TextStyle(color: Colors.black),
@@ -26,7 +26,7 @@ class appTheme {
       backgroundColor: Color(0xFF6B43FF),
       foregroundColor: Colors.white,
     ),
-    cardColor: Colors.grey[850],
+    cardColor: Color(0xFF2A2A3A),
 
     textTheme: const TextTheme(
       bodyLarge: TextStyle(color: Color(0xFF6B43FF)),

@@ -1,45 +1,19 @@
 import 'package:flutter/cupertino.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/legacy.dart';
 
-final appThemeStateNotifier = ChangeNotifierProvider<AppThemeState>(
-  (ref) => AppThemeState(),
-);
+final appThemeStateNotifier = ChangeNotifierProvider((ref) => AppThemeState());
 
 class AppThemeState extends ChangeNotifier {
   var isDarkModeEnable = false;
 
   AppThemeState() {
-    _loadThemeFromFirebase();
+    final box = Hive.box('settings');
+    isDarkModeEnable = box.get('isDarkModeEnable', defaultValue: false) as bool;
   }
-
-  /// Lấy theme từ Firestore
-  Future<void> _loadThemeFromFirebase() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("settings")
-          .doc("theme")
-          .get();
-
-      if (doc.exists) {
-        isDarkModeEnable = doc.data()?['isDarkModeEnable'] ?? false;
-        notifyListeners();
-      }
-    } catch (e) {
-      print("⚠️ Firestore error when loading theme: $e");
-    }
-  }
-
-  Future<void> toggleTheme(bool value) async {
+  void toggleTheme(bool value) {
     isDarkModeEnable = value;
+    Hive.box('settings').put('isDarkModeEnable', value);
     notifyListeners();
-
-    try {
-      await FirebaseFirestore.instance.collection("settings").doc("theme").set({
-        "isDarkModeEnable": value,
-      });
-    } catch (e) {
-      print("⚠️ Firestore error when saving theme: $e");
-    }
   }
 }

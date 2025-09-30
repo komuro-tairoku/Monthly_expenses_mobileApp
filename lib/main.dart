@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:monthly_expenses_mobile_app/Screen/loginScreen.dart';
 import 'firebase_options.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'Screen/bottomNavBar.dart';
@@ -8,16 +9,20 @@ import 'Screen/IntroPage.dart';
 import 'Screen/theme.dart';
 import 'Screen/themeProvider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import './db/transaction.dart' as localdb;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // 🔑 Đảm bảo luôn có user (ẩn danh nếu chưa đăng nhập)
   User? user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     await FirebaseAuth.instance.signInAnonymously();
   }
+  await Hive.initFlutter();
+  Hive.registerAdapter(localdb.TransactionAdapter());
+  await Hive.openBox<localdb.Transaction>('transactions_v2');
+  await Hive.openBox('settings');
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -46,32 +51,26 @@ class _MyAppState extends ConsumerState<MyApp> {
         setState(() => _loading = false);
         return;
       }
-
       final doc = await FirebaseFirestore.instance
           .collection("settings")
           .doc(user.uid)
           .get();
 
-      if (doc.exists && doc.data()?['seenIntro'] == true) {
-        setState(() {
-          _seenIntro = true;
-        });
+      if (doc.exists && (doc.data()?['seenIntro'] == true)) {
+        _seenIntro = true;
       }
     } catch (e) {
-      print("⚠️ Firestore error: $e");
+      debugPrint("⚠️ Firestore error: $e");
     } finally {
-      // 🚀 Đảm bảo luôn dừng loading
       if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+        setState(() => _loading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeState = ref.watch(appThemeStateNotifier);
+    final appThemeState = ref.watch(appThemeStateNotifier);
 
     if (_loading) {
       return const MaterialApp(
@@ -84,7 +83,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       title: 'Quản lý thu chi',
       theme: appTheme.lightTheme,
       darkTheme: appTheme.darkTheme,
-      themeMode: themeState.isDarkModeEnable ? ThemeMode.dark : ThemeMode.light,
+      themeMode: appThemeState.isDarkModeEnable
+          ? ThemeMode.dark
+          : ThemeMode.light,
       home: _seenIntro ? const Home() : const IntroPage(),
       routes: {'/home': (context) => const Home()},
     );

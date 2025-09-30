@@ -45,38 +45,26 @@ class _HomeScreenState extends State<HomeScreen> {
             .orderBy("date", descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                "Chưa có giao dịch nào",
-                style: TextStyle(fontSize: 20),
-              ),
-            );
-          }
-
-          final transactions = snapshot.data!.docs;
-
           double totalIncome = 0;
           double totalExpense = 0;
+          double balance = 0;
+
+          final transactions = snapshot.data?.docs ?? [];
+
           for (var doc in transactions) {
             final data = doc.data() as Map<String, dynamic>;
             final amount = (data['amount'] as num).toDouble();
             final isIncome = data['isIncome'] ?? false;
-
             if (isIncome) {
               totalIncome += amount;
             } else {
               totalExpense += amount;
             }
           }
-          double balance = totalIncome - totalExpense;
+          balance = totalIncome - totalExpense;
 
           return Column(
             children: [
-              // Header thống kê
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -114,72 +102,89 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Danh sách giao dịch
+              // List giao dịch
               Expanded(
-                child: ListView.builder(
-                  itemCount: transactions.length,
-                  itemBuilder: (context, index) {
-                    final doc = transactions[index];
-                    final data = doc.data() as Map<String, dynamic>;
-
-                    final isIncome = data['isIncome'] ?? false;
-
-                    return Dismissible(
-                      key: ValueKey(doc.id),
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      secondaryBackground: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      onDismissed: (_) {
-                        FirebaseFirestore.instance
-                            .collection("transactions")
-                            .doc(user.uid)
-                            .collection("items")
-                            .doc(doc.id)
-                            .delete();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Đã xóa giao dịch")),
-                        );
-                      },
-                      child: Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                child: snapshot.connectionState == ConnectionState.waiting
+                    ? const Center(child: CircularProgressIndicator())
+                    : transactions.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "Chưa có giao dịch nào",
+                          style: TextStyle(fontSize: 20),
                         ),
-                        child: ListTile(
-                          leading: Icon(
-                            isIncome
-                                ? Icons.arrow_downward
-                                : Icons.arrow_upward,
-                            color: isIncome ? Colors.green : Colors.red,
-                          ),
-                          title: Text(data['label'] ?? ""),
-                          subtitle: Text(
-                            "${(isIncome) ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
-                          ),
-                          trailing: Text(
-                            "${_formatAmount((data['amount'] as num).toDouble())} đ",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isIncome ? Colors.green : Colors.red,
+                      )
+                    : ListView.builder(
+                        itemCount: transactions.length,
+                        itemBuilder: (context, index) {
+                          final doc = transactions[index];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final isIncome = data['isIncome'] ?? false;
+
+                          return Dismissible(
+                            key: ValueKey(doc.id),
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          onLongPress: () {
-                            _showOptions(context, user.uid, doc.id, data);
-                          },
-                        ),
+                            secondaryBackground: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
+                            ),
+                            onDismissed: (_) {
+                              FirebaseFirestore.instance
+                                  .collection("transactions")
+                                  .doc(user.uid)
+                                  .collection("items")
+                                  .doc(doc.id)
+                                  .delete();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Đã xóa giao dịch"),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              color: Theme.of(context).cardColor,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: ListTile(
+                                leading: Icon(
+                                  isIncome
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
+                                  color: isIncome ? Colors.green : Colors.red,
+                                ),
+                                title: Text(data['label'] ?? ""),
+                                subtitle: Text(
+                                  "${isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
+                                ),
+                                trailing: Text(
+                                  "${_formatAmount((data['amount'] as num).toDouble())} đ",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isIncome ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                                onLongPress: () {
+                                  _showOptions(context, user.uid, doc.id, data);
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           );
@@ -296,11 +301,13 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: labelController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Số tiền"),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
