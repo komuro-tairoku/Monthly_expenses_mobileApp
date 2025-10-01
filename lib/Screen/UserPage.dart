@@ -9,14 +9,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'themeProvider.dart';
 
-@HiveType(typeId: 1)
-class UserProfile extends HiveObject {
-  @HiveField(0)
-  String? avatarPath;
-
-  UserProfile({this.avatarPath});
-}
-
 class UserPage extends ConsumerStatefulWidget {
   const UserPage({super.key});
 
@@ -29,20 +21,17 @@ class _UserPageState extends ConsumerState<UserPage> {
   final ImagePicker _picker = ImagePicker();
   final double circleSize = 150;
 
-  Box<UserProfile>? _userBox;
-
   @override
   void initState() {
     super.initState();
-    _initUserData();
+    _loadAvatar();
   }
 
-  Future<void> _initUserData() async {
-    _userBox = await Hive.openBox<UserProfile>('users');
-
-    final userProfile = _userBox!.get('profile');
-    if (userProfile != null && userProfile.avatarPath != null) {
-      final file = File(userProfile.avatarPath!);
+  void _loadAvatar() {
+    final box = Hive.box('settings');
+    final String? path = box.get('avatarPath');
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
       if (file.existsSync()) {
         setState(() {
           _avatarImage = file;
@@ -66,15 +55,15 @@ class _UserPageState extends ConsumerState<UserPage> {
         picked.path,
       ).copy('${appDir.path}/$fileName');
 
-      final oldPath = _userBox!.get('profile')?.avatarPath;
+      // Xóa avatar cũ nếu có
+      final oldPath = Hive.box('settings').get('avatarPath');
       if (oldPath != null && File(oldPath).existsSync()) {
         try {
           File(oldPath).deleteSync();
         } catch (_) {}
       }
 
-      final profile = UserProfile(avatarPath: savedImage.path);
-      await _userBox!.put('profile', profile);
+      Hive.box('settings').put('avatarPath', savedImage.path);
 
       setState(() {
         _avatarImage = savedImage;
@@ -92,6 +81,7 @@ class _UserPageState extends ConsumerState<UserPage> {
         children: [
           Column(
             children: [
+              // Header
               Container(
                 height: 150,
                 color: Theme.of(context).primaryColor,
@@ -142,6 +132,8 @@ class _UserPageState extends ConsumerState<UserPage> {
                   ),
                 ),
               ),
+
+              // Body
               Expanded(
                 child: Column(
                   children: [
@@ -202,6 +194,8 @@ class _UserPageState extends ConsumerState<UserPage> {
               ),
             ],
           ),
+
+          // Avatar
           Positioned(
             top: 90,
             left: MediaQuery.of(context).size.width / 2 - (circleSize / 2),

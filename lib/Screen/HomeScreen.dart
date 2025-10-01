@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import '../db/transaction.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,25 +13,70 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // ✅ Thêm GlobalKey để có context ổn định
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   String _formatAmount(double value) {
     return value.toStringAsFixed(0);
   }
 
-  String _formatDate(Timestamp? date) {
-    if (date == null) return "Không rõ ngày";
-    final d = date.toDate();
-    return DateFormat('dd/MM/yyyy HH:mm').format(d);
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+  }
+
+  Future<void> _deleteTransaction(TransactionModel txn) async {
+    final user = FirebaseAuth.instance.currentUser;
+    await txn.delete();
+
+    if (txn.isSynced && user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('transactions')
+            .doc(user.uid)
+            .collection('items')
+            .doc(txn.id)
+            .delete();
+      } catch (e) {
+        debugPrint("❌ Lỗi xóa từ Firebase: $e");
+        txn.isSynced = false;
+        await txn.save();
+      }
+    }
+  }
+
+  Future<void> _updateTransaction(
+    TransactionModel txn,
+    String newNote,
+    double newAmount,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    txn.note = newNote;
+    txn.amount = newAmount;
+    await txn.save();
+    if (txn.isSynced && user != null) {
+      try {
+        final ref = FirebaseFirestore.instance
+            .collection('transactions')
+            .doc(user.uid)
+            .collection('items')
+            .doc(txn.id);
+
+        await ref.update({
+          'note': newNote,
+          'label': newNote,
+          'amount': newAmount,
+        });
+      } catch (e) {
+        debugPrint("❌ Lỗi cập nhật Firebase: $e");
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text("Chưa đăng nhập")));
-    }
-
     return Scaffold(
+      key: _scaffoldKey, // ✅ Gắn key vào Scaffold
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Ghi chú Thu Chi"),
@@ -37,31 +84,26 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         elevation: 2,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection("transactions")
-            .doc(user.uid)
-            .collection("items")
-            .orderBy("date", descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box<TransactionModel>(
+          'transactions',
+        ).listenable(),
+        builder: (context, Box<TransactionModel> box, _) {
+          final transactions = box.values.toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+
           double totalIncome = 0;
           double totalExpense = 0;
-          double balance = 0;
 
-          final transactions = snapshot.data?.docs ?? [];
-
-          for (var doc in transactions) {
-            final data = doc.data() as Map<String, dynamic>;
-            final amount = (data['amount'] as num).toDouble();
-            final isIncome = data['isIncome'] ?? false;
-            if (isIncome) {
-              totalIncome += amount;
+          for (var txn in transactions) {
+            if (txn.isIncome) {
+              totalIncome += txn.amount;
             } else {
-              totalExpense += amount;
+              totalExpense += txn.amount;
             }
           }
-          balance = totalIncome - totalExpense;
+
+          final balance = totalIncome - totalExpense;
 
           return Column(
             children: [
@@ -101,12 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
-              // List giao dịch
               Expanded(
-                child: snapshot.connectionState == ConnectionState.waiting
-                    ? const Center(child: CircularProgressIndicator())
-                    : transactions.isEmpty
+                child: transactions.isEmpty
                     ? const Center(
                         child: Text(
                           "Chưa có giao dịch nào",
@@ -116,12 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     : ListView.builder(
                         itemCount: transactions.length,
                         itemBuilder: (context, index) {
-                          final doc = transactions[index];
-                          final data = doc.data() as Map<String, dynamic>;
-                          final isIncome = data['isIncome'] ?? false;
+                          final txn = transactions[index];
 
                           return Dismissible(
-                            key: ValueKey(doc.id),
+                            key: ValueKey(txn.id),
                             background: Container(
                               color: Colors.red,
                               alignment: Alignment.centerLeft,
@@ -140,16 +176,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.white,
                               ),
                             ),
-                            onDismissed: (_) {
-                              FirebaseFirestore.instance
-                                  .collection("transactions")
-                                  .doc(user.uid)
-                                  .collection("items")
-                                  .doc(doc.id)
-                                  .delete();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Đã xóa giao dịch"),
+                            onDismissed: (_) async {
+                              await _deleteTransaction(txn);
+
+                              final messenger = ScaffoldMessenger.of(
+                                _scaffoldKey.currentContext!,
+                              );
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: const Text("Đã xóa giao dịch"),
+                                  behavior: SnackBarBehavior.floating,
+                                  margin: const EdgeInsets.all(12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  duration: const Duration(seconds: 2),
                                 ),
                               );
                             },
@@ -161,24 +202,28 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: ListTile(
                                 leading: Icon(
-                                  isIncome
+                                  txn.isIncome
                                       ? Icons.arrow_downward
                                       : Icons.arrow_upward,
-                                  color: isIncome ? Colors.green : Colors.red,
+                                  color: txn.isIncome
+                                      ? Colors.green
+                                      : Colors.red,
                                 ),
-                                title: Text(data['label'] ?? ""),
+                                title: Text(txn.note),
                                 subtitle: Text(
-                                  "${isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(data['date'])}",
+                                  "${txn.isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(txn.date)}",
                                 ),
                                 trailing: Text(
-                                  "${_formatAmount((data['amount'] as num).toDouble())} đ",
+                                  "${_formatAmount(txn.amount)} đ",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: isIncome ? Colors.green : Colors.red,
+                                    color: txn.isIncome
+                                        ? Colors.green
+                                        : Colors.red,
                                   ),
                                 ),
                                 onLongPress: () {
-                                  _showOptions(context, user.uid, doc.id, data);
+                                  _showOptions(context, txn);
                                 },
                               ),
                             ),
@@ -233,12 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showOptions(
-    BuildContext context,
-    String uid,
-    String docId,
-    Map<String, dynamic> data,
-  ) {
+  void _showOptions(BuildContext context, TransactionModel txn) {
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
@@ -250,21 +290,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text("Sửa"),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _showEditDialog(uid, docId, data);
+                  _showEditDialog(txn);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text("Xóa"),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
-                  FirebaseFirestore.instance
-                      .collection("transactions")
-                      .doc(uid)
-                      .collection("items")
-                      .doc(docId)
-                      .delete();
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  await _deleteTransaction(txn);
+                  final messenger = ScaffoldMessenger.of(
+                    _scaffoldKey.currentContext!,
+                  );
+                  messenger.showSnackBar(
                     SnackBar(
                       content: const Text("Đã xóa giao dịch"),
                       behavior: SnackBarBehavior.floating,
@@ -284,14 +322,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showEditDialog(String uid, String docId, Map<String, dynamic> data) {
-    final labelController = TextEditingController(text: data['label'] ?? "");
-    final amountController = TextEditingController(
-      text: (data['amount']).toString(),
-    );
+  void _showEditDialog(TransactionModel txn) {
+    final noteController = TextEditingController(text: txn.note);
+    final amountController = TextEditingController(text: txn.amount.toString());
 
     showDialog(
-      context: context,
+      context: _scaffoldKey.currentContext!,
       builder: (context) {
         return AlertDialog(
           title: const Text("Sửa giao dịch"),
@@ -299,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: labelController,
+                controller: noteController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -317,25 +353,15 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text("Hủy"),
             ),
             ElevatedButton(
-              onPressed: () {
-                final newLabel = labelController.text.trim();
+              onPressed: () async {
+                final newNote = noteController.text.trim();
                 final newAmount =
-                    double.tryParse(amountController.text.trim()) ?? 0;
+                    double.tryParse(amountController.text.trim()) ?? txn.amount;
 
-                FirebaseFirestore.instance
-                    .collection("transactions")
-                    .doc(uid)
-                    .collection("items")
-                    .doc(docId)
-                    .update({
-                      "label": newLabel.isNotEmpty ? newLabel : data['label'],
-                      "amount": newAmount,
-                      "isIncome": data['isIncome'],
-                      "category": data['category'],
-                      "date": data['date'],
-                    });
-
-                Navigator.pop(context);
+                if (newNote.isNotEmpty) {
+                  await _updateTransaction(txn, newNote, newAmount);
+                  Navigator.pop(context);
+                }
               },
               child: const Text("Lưu"),
             ),

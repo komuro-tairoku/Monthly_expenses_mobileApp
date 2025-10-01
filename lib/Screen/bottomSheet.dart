@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'bottomNavBar.dart';
+import 'package:hive/hive.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../db/transaction.dart';
 
 class bottomSheet extends StatefulWidget {
   const bottomSheet({super.key});
@@ -14,10 +17,14 @@ class bottomSheet extends StatefulWidget {
 class _bottomSheetState extends State<bottomSheet> {
   int value = 0;
   final PageController _pageController = PageController();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   String amount = "";
   String? selectedCategory;
   String note = "";
+
+  Box<TransactionModel> get transactionBox =>
+      Hive.box<TransactionModel>('transactions');
 
   final List<Map<String, dynamic>> chiOptions = [
     {"icon": Icons.shopping_cart, "label": "Mua sắm"},
@@ -39,6 +46,118 @@ class _bottomSheetState extends State<bottomSheet> {
     {"icon": Icons.card_giftcard, "label": "Phụ cấp"},
     {"icon": Icons.star, "label": "Thưởng"},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _syncUnsyncedTransactions();
+
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
+      if (results.isNotEmpty && results.first != ConnectivityResult.none) {
+        _syncUnsyncedTransactions();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _syncUnsyncedTransactions() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        debugPrint("Không có kết nối mạng");
+        return;
+      }
+
+      final unsynced = transactionBox.values.where((t) => !t.isSynced).toList();
+
+      if (unsynced.isEmpty) {
+        debugPrint("Không có transaction nào cần sync");
+        return;
+      }
+
+      debugPrint("Đang sync ${unsynced.length} transaction...");
+
+      for (var txn in unsynced) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('transactions')
+              .doc(user.uid)
+              .collection('items')
+              .doc(txn.id) // 👉 dùng id làm docId
+              .set({
+                'id': txn.id,
+                'category': txn.category,
+                'amount': txn.amount,
+                'note': txn.note,
+                'label': txn.note,
+                'date': Timestamp.fromDate(txn.date),
+                'isIncome': txn.isIncome,
+              }, SetOptions(merge: true));
+
+          txn.isSynced = true;
+          await txn.save();
+
+          debugPrint("Đã sync transaction: ${txn.id}");
+        } catch (e) {
+          debugPrint("Lỗi sync transaction ${txn.id}: $e");
+        }
+      }
+
+      debugPrint("Hoàn tất sync!");
+    } catch (e) {
+      debugPrint("Lỗi khi sync: $e");
+    }
+  }
+
+  Future<void> _saveTransaction(TransactionModel txn) async {
+    await transactionBox.add(txn);
+    debugPrint("Đã lưu vào Hive");
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity();
+
+        if (connectivityResult.isEmpty ||
+            connectivityResult.first == ConnectivityResult.none) {
+          debugPrint("Offline - sẽ sync sau");
+          return;
+        }
+
+        await FirebaseFirestore.instance
+            .collection('transactions')
+            .doc(user.uid)
+            .collection('items')
+            .doc(txn.id)
+            .set({
+              'id': txn.id,
+              'category': txn.category,
+              'amount': txn.amount,
+              'note': txn.note,
+              'label': txn.note,
+              'date': Timestamp.fromDate(txn.date),
+              'isIncome': txn.isIncome,
+            });
+
+        txn.isSynced = true;
+        await txn.save();
+        debugPrint("Đã sync lên Firebase ngay");
+      } catch (e) {
+        debugPrint("Không sync được, sẽ thử lại sau: $e");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +236,6 @@ class _bottomSheetState extends State<bottomSheet> {
               ),
             ),
             const SizedBox(height: 25),
-
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -180,6 +298,7 @@ class _bottomSheetState extends State<bottomSheet> {
   void _showAmountSheet(String category) {
     setState(() => selectedCategory = category);
     amount = "";
+    note = "";
 
     showModalBottomSheet(
       context: context,
@@ -226,11 +345,13 @@ class _bottomSheetState extends State<bottomSheet> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium!.copyWith(fontSize: 20),
                     decoration: const InputDecoration(labelText: "Ghi chú"),
                     onChanged: (val) => note = val,
                   ),
                   const SizedBox(height: 16),
-
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -258,26 +379,28 @@ class _bottomSheetState extends State<bottomSheet> {
                                 double.tryParse(amount) != null &&
                                 double.parse(amount) > 0 &&
                                 selectedCategory != null) {
-                              try {
-                                final user = FirebaseAuth.instance.currentUser;
+                              final txn = TransactionModel(
+                                id: DateTime.now().millisecondsSinceEpoch
+                                    .toString(),
+                                note: note.isNotEmpty
+                                    ? note
+                                    : selectedCategory!,
+                                amount: double.parse(amount),
+                                isIncome: value == 1,
+                                category: selectedCategory!,
+                                date: DateTime.now(),
+                                isSynced: false,
+                              );
 
-                                if (user == null) {
-                                  throw Exception("User chưa đăng nhập!");
-                                }
+                              await _saveTransaction(txn);
 
-                                await FirebaseFirestore.instance
-                                    .collection('transactions')
-                                    .doc(user.uid)
-                                    .collection('items')
-                                    .add({
-                                      'label': note.isNotEmpty
-                                          ? note
-                                          : selectedCategory!,
-                                      'amount': double.parse(amount),
-                                      'isIncome': value == 1,
-                                      'category': selectedCategory,
-                                      'date': Timestamp.now(),
-                                    });
+                              if (mounted) {
+                                final connectivityResult = await Connectivity()
+                                    .checkConnectivity();
+                                final isOnline =
+                                    connectivityResult.isNotEmpty &&
+                                    connectivityResult.first !=
+                                        ConnectivityResult.none;
 
                                 showDialog(
                                   context: context,
@@ -285,7 +408,7 @@ class _bottomSheetState extends State<bottomSheet> {
                                     title: const Text("Thành công"),
                                     content: Text(
                                       value == 1
-                                          ? "Đã thêm thu nhập!"
+                                          ? "Đã thêm thu nhập!}"
                                           : "Đã thêm chi tiêu!",
                                     ),
                                     actions: [
@@ -293,23 +416,13 @@ class _bottomSheetState extends State<bottomSheet> {
                                         onPressed: () {
                                           Navigator.of(ctx).pop();
                                           Navigator.of(context).pop();
-                                          Navigator.of(this.context).pop();
-
-                                          Navigator.of(
-                                            this.context,
-                                          ).pushReplacement(
-                                            MaterialPageRoute(
-                                              builder: (_) => const Home(),
-                                            ),
-                                          );
+                                          Navigator.of(context).pop();
                                         },
                                         child: const Text("OK"),
                                       ),
                                     ],
                                   ),
                                 );
-                              } catch (e) {
-                                print("❌ Firestore error: $e");
                               }
                             }
                           },

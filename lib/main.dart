@@ -10,19 +10,24 @@ import 'Screen/theme.dart';
 import 'Screen/themeProvider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import './db/transaction.dart' as localdb;
+import './db/transaction.dart';
+import './Services/syncService.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   User? user = FirebaseAuth.instance.currentUser;
   if (user == null) {
     await FirebaseAuth.instance.signInAnonymously();
   }
+
   await Hive.initFlutter();
-  Hive.registerAdapter(localdb.TransactionAdapter());
-  await Hive.openBox<localdb.Transaction>('transactions_v2');
+  Hive.registerAdapter(TransactionModelAdapter());
+  await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
+
+  SyncService.start();
 
   runApp(const ProviderScope(child: MyApp()));
 }
