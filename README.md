@@ -9,13 +9,13 @@
 - ➕ Thêm, sửa, xóa các khoản chi tiêu
 - 📅 Phân loại chi tiêu theo ngày, tuần, tháng
 - 📊 Thống kê chi tiêu bằng biểu đồ trực quan
-- ☁️ Dễ dàng mở rộng để kết nối với Firebase / SQLite
+- ☁️ Dễ dàng mở rộng để kết nối với Firebase / Hive
 
 ---
 
 ## 🛠️ Công nghệ sử dụng
 - [Flutter](https://flutter.dev/) - Framework chính
 - [Dart](https://dart.dev/) - Ngôn ngữ lập trình
-- SQLite / Firebase (tùy chọn cho database)
+- Hive / Firebase (tùy chọn cho database)
 
 ---
