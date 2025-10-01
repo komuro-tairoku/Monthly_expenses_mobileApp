@@ -9,7 +9,6 @@
 - ➕ Thêm, sửa, xóa các khoản chi tiêu
 - 📅 Phân loại chi tiêu theo ngày, tuần, tháng
 - 📊 Thống kê chi tiêu bằng biểu đồ trực quan
-- 🔍 Tìm kiếm và lọc theo danh mục
 - ☁️ Dễ dàng mở rộng để kết nối với Firebase / SQLite
 
 ---
