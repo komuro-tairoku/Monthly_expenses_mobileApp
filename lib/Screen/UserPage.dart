@@ -7,7 +7,10 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'themeProvider.dart';
+import 'loginScreen.dart';
 
 class UserPage extends ConsumerStatefulWidget {
   const UserPage({super.key});
@@ -55,7 +58,6 @@ class _UserPageState extends ConsumerState<UserPage> {
         picked.path,
       ).copy('${appDir.path}/$fileName');
 
-      // Xóa avatar cũ nếu có
       final oldPath = Hive.box('settings').get('avatarPath');
       if (oldPath != null && File(oldPath).existsSync()) {
         try {
@@ -73,8 +75,28 @@ class _UserPageState extends ConsumerState<UserPage> {
     }
   }
 
+  Future<void> _signOut(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Đăng xuất thành công")));
+      }
+    } catch (e) {
+      debugPrint("⚠️ Sign out error: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -138,12 +160,14 @@ class _UserPageState extends ConsumerState<UserPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 100),
+
                     Text(
-                      "Profile",
+                      user?.displayName ?? user?.email ?? "User",
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium!.copyWith(fontSize: 25),
                     ),
+
                     Container(
                       margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(16),
@@ -167,6 +191,30 @@ class _UserPageState extends ConsumerState<UserPage> {
                           _buildItem(context, Icons.security, "Bảo mật"),
                           _buildItem(context, Icons.notifications, "Thông báo"),
                           _buildItem(context, Icons.lock, "Riêng tư"),
+
+                          // 👉 Nút Đăng xuất
+                          const SizedBox(height: 21),
+                          GestureDetector(
+                            onTap: () => _signOut(context),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.logout,
+                                  size: 22,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  "Đăng xuất",
+                                  style: Theme.of(context).textTheme.bodyMedium!
+                                      .copyWith(
+                                        fontSize: 17,
+                                        color: Colors.red,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -217,15 +265,20 @@ class _UserPageState extends ConsumerState<UserPage> {
                       ),
                     ],
                   ),
-                  child: _avatarImage != null
-                      ? ClipOval(
-                          child: Image.file(_avatarImage!, fit: BoxFit.cover),
-                        )
-                      : const Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Colors.deepPurple,
-                        ),
+                  child: ClipOval(
+                    child: _avatarImage != null
+                        ? Image.file(_avatarImage!, fit: BoxFit.cover)
+                        : (user?.photoURL != null
+                              ? Image.network(
+                                  user!.photoURL!,
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.deepPurple,
+                                )),
+                  ),
                 ),
                 Positioned(
                   bottom: -4,

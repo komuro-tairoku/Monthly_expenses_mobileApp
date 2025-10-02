@@ -14,11 +14,16 @@ class IntroPage extends StatefulWidget {
 class _IntroPageState extends State<IntroPage> {
   Future<void> _saveSeenIntro() async {
     User? user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      user = (await FirebaseAuth.instance.signInAnonymously()).user;
+      // Nếu chưa đăng nhập, chuyển đến màn hình login
+      if (context.mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+      return;
     }
 
-    await FirebaseFirestore.instance.collection('settings').doc(user!.uid).set({
+    await FirebaseFirestore.instance.collection('settings').doc(user.uid).set({
       'seenIntro': true,
     }, SetOptions(merge: true));
   }
@@ -190,7 +195,7 @@ class _IntroPageState extends State<IntroPage> {
       onDone: () async {
         await _saveSeenIntro();
         if (context.mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          Navigator.of(context).pushReplacementNamed('/login');
         }
       },
       showSkipButton: true,

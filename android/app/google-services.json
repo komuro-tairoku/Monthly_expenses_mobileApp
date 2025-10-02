@@ -12,7 +12,20 @@
           "package_name": "com.example.monthly_expenses_mobile_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "200895585243-2n8o0t6gr0e0q0at1vkso0alnf9sobh4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.monthly_expenses_mobile_app",
+            "certificate_hash": "6b97be4bca519dd79340beffc3c2882a5189aca9"
+          }
+        },
+        {
+          "client_id": "200895585243-g4feq020k0aeqe2t2jro0tj8lioe5d4e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBNVS_WOA46hfIgiyD3I59WVYN58GvOtUc"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "200895585243-g4feq020k0aeqe2t2jro0tj8lioe5d4e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "200895585243-cff14k56v0rpvhb9a11ul4lfvi7cam0g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.monthlyExpensesMobileApp"
+              }
+            }
+          ]
         }
       }
     }

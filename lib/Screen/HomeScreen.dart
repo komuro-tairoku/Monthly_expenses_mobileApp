@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../db/transaction.dart';
+import '../Services/transactionService.dart'; // ✅ import service
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,70 +12,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // ✅ Thêm GlobalKey để có context ổn định
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _formatAmount(double value) {
-    return value.toStringAsFixed(0);
-  }
+  String _formatAmount(double value) => value.toStringAsFixed(0);
 
-  String _formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy HH:mm').format(date);
-  }
-
-  Future<void> _deleteTransaction(TransactionModel txn) async {
-    final user = FirebaseAuth.instance.currentUser;
-    await txn.delete();
-
-    if (txn.isSynced && user != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('transactions')
-            .doc(user.uid)
-            .collection('items')
-            .doc(txn.id)
-            .delete();
-      } catch (e) {
-        debugPrint("❌ Lỗi xóa từ Firebase: $e");
-        txn.isSynced = false;
-        await txn.save();
-      }
-    }
-  }
-
-  Future<void> _updateTransaction(
-    TransactionModel txn,
-    String newNote,
-    double newAmount,
-  ) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    txn.note = newNote;
-    txn.amount = newAmount;
-    await txn.save();
-    if (txn.isSynced && user != null) {
-      try {
-        final ref = FirebaseFirestore.instance
-            .collection('transactions')
-            .doc(user.uid)
-            .collection('items')
-            .doc(txn.id);
-
-        await ref.update({
-          'note': newNote,
-          'label': newNote,
-          'amount': newAmount,
-        });
-      } catch (e) {
-        debugPrint("❌ Lỗi cập nhật Firebase: $e");
-      }
-    }
-  }
+  String _formatDate(DateTime date) =>
+      DateFormat('dd/MM/yyyy HH:mm').format(date);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // ✅ Gắn key vào Scaffold
+      key: _scaffoldKey,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Ghi chú Thu Chi"),
@@ -89,21 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
           'transactions',
         ).listenable(),
         builder: (context, Box<TransactionModel> box, _) {
-          final transactions = box.values.toList()
-            ..sort((a, b) => b.date.compareTo(a.date));
-
-          double totalIncome = 0;
-          double totalExpense = 0;
-
-          for (var txn in transactions) {
-            if (txn.isIncome) {
-              totalIncome += txn.amount;
-            } else {
-              totalExpense += txn.amount;
-            }
-          }
-
-          final balance = totalIncome - totalExpense;
+          final transactions = TransactionService.getSortedTransactions(box);
+          final totals = TransactionService.calculateTotals(transactions);
+          final totalIncome = totals['income']!;
+          final totalExpense = totals['expense']!;
+          final balance = totals['balance']!;
 
           return Column(
             children: [
@@ -155,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: transactions.length,
                         itemBuilder: (context, index) {
                           final txn = transactions[index];
-
                           return Dismissible(
                             key: ValueKey(txn.id),
                             background: Container(
@@ -177,12 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             onDismissed: (_) async {
-                              await _deleteTransaction(txn);
-
-                              final messenger = ScaffoldMessenger.of(
+                              await TransactionService.deleteTransaction(txn);
+                              ScaffoldMessenger.of(
                                 _scaffoldKey.currentContext!,
-                              );
-                              messenger.showSnackBar(
+                              ).showSnackBar(
                                 SnackBar(
                                   content: const Text("Đã xóa giao dịch"),
                                   behavior: SnackBarBehavior.floating,
@@ -222,9 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         : Colors.red,
                                   ),
                                 ),
-                                onLongPress: () {
-                                  _showOptions(context, txn);
-                                },
+                                onLongPress: () => _showOptions(context, txn),
                               ),
                             ),
                           );
@@ -281,44 +212,39 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showOptions(BuildContext context, TransactionModel txn) {
     showModalBottomSheet(
       context: context,
-      builder: (ctx) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit, color: Colors.blue),
-                title: const Text("Sửa"),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showEditDialog(txn);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text("Xóa"),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await _deleteTransaction(txn);
-                  final messenger = ScaffoldMessenger.of(
-                    _scaffoldKey.currentContext!,
-                  );
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: const Text("Đã xóa giao dịch"),
-                      behavior: SnackBarBehavior.floating,
-                      margin: const EdgeInsets.all(12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      duration: const Duration(seconds: 2),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.blue),
+              title: const Text("Sửa"),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditDialog(txn);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text("Xóa"),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await TransactionService.deleteTransaction(txn);
+                ScaffoldMessenger.of(_scaffoldKey.currentContext!).showSnackBar(
+                  SnackBar(
+                    content: const Text("Đã xóa giao dịch"),
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.all(12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -357,9 +283,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 final newNote = noteController.text.trim();
                 final newAmount =
                     double.tryParse(amountController.text.trim()) ?? txn.amount;
-
                 if (newNote.isNotEmpty) {
-                  await _updateTransaction(txn, newNote, newAmount);
+                  await TransactionService.updateTransaction(
+                    txn,
+                    newNote,
+                    newAmount,
+                  );
                   Navigator.pop(context);
                 }
               },

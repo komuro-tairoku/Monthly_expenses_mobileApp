@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:monthly_expenses_mobile_app/Screen/loginScreen.dart';
 import 'firebase_options.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'Screen/bottomNavBar.dart';
 import 'Screen/IntroPage.dart';
 import 'Screen/theme.dart';
 import 'Screen/themeProvider.dart';
@@ -12,21 +11,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import './db/transaction.dart';
 import './Services/syncService.dart';
+import 'Screen/bottomNavBar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user == null) {
-    await FirebaseAuth.instance.signInAnonymously();
-  }
-
+  // Hive setup
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionModelAdapter());
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
 
+  // Start background sync service
   SyncService.start();
 
   runApp(const ProviderScope(child: MyApp()));
@@ -42,34 +39,39 @@ class MyApp extends ConsumerStatefulWidget {
 class _MyAppState extends ConsumerState<MyApp> {
   bool _loading = true;
   bool _seenIntro = false;
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _checkSeenIntro();
+    _checkAppState();
   }
 
-  Future<void> _checkSeenIntro() async {
+  Future<void> _checkAppState() async {
     try {
+      // Kiểm tra user đã login thực sự chưa (không phải anonymous)
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      final doc = await FirebaseFirestore.instance
-          .collection("settings")
-          .doc(user.uid)
-          .get();
+      if (user != null && !user.isAnonymous) {
+        _isLoggedIn = true;
 
-      if (doc.exists && (doc.data()?['seenIntro'] == true)) {
-        _seenIntro = true;
+        // CHỈ kiểm tra seenIntro khi đã login
+        final doc = await FirebaseFirestore.instance
+            .collection("settings")
+            .doc(user.uid)
+            .get();
+        if (doc.exists && (doc.data()?['seenIntro'] == true)) {
+          _seenIntro = true;
+        }
+      } else {
+        final box = Hive.box('settings');
+        _seenIntro = box.get('seenIntro', defaultValue: false);
       }
     } catch (e) {
       debugPrint("⚠️ Firestore error: $e");
+      _seenIntro = false;
+      _isLoggedIn = false;
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -83,6 +85,13 @@ class _MyAppState extends ConsumerState<MyApp> {
       );
     }
 
+    Widget homePage;
+    if (_isLoggedIn) {
+      homePage = const Home();
+    } else {
+      homePage = _seenIntro ? const LoginScreen() : const IntroPage();
+    }
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Quản lý thu chi',
@@ -91,8 +100,12 @@ class _MyAppState extends ConsumerState<MyApp> {
       themeMode: appThemeState.isDarkModeEnable
           ? ThemeMode.dark
           : ThemeMode.light,
-      home: _seenIntro ? const Home() : const IntroPage(),
-      routes: {'/home': (context) => const Home()},
+      home: homePage,
+      routes: {
+        '/intro': (context) => const IntroPage(),
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const Home(),
+      },
     );
   }
 }

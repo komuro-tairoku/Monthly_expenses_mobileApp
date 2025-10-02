@@ -50,13 +50,17 @@ class _bottomSheetState extends State<bottomSheet> {
   @override
   void initState() {
     super.initState();
-    _syncUnsyncedTransactions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncUnsyncedTransactions();
+    });
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       results,
     ) {
       if (results.isNotEmpty && results.first != ConnectivityResult.none) {
-        _syncUnsyncedTransactions();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _syncUnsyncedTransactions();
+        });
       }
     });
   }
@@ -82,11 +86,10 @@ class _bottomSheetState extends State<bottomSheet> {
       final unsynced = transactionBox.values.where((t) => !t.isSynced).toList();
 
       if (unsynced.isEmpty) {
-        debugPrint("Không có transaction nào cần sync");
         return;
       }
 
-      debugPrint("Đang sync ${unsynced.length} transaction...");
+      final batch = FirebaseFirestore.instance.batch();
 
       for (var txn in unsynced) {
         try {
@@ -94,7 +97,7 @@ class _bottomSheetState extends State<bottomSheet> {
               .collection('transactions')
               .doc(user.uid)
               .collection('items')
-              .doc(txn.id) // 👉 dùng id làm docId
+              .doc(txn.id)
               .set({
                 'id': txn.id,
                 'category': txn.category,
@@ -104,9 +107,12 @@ class _bottomSheetState extends State<bottomSheet> {
                 'date': Timestamp.fromDate(txn.date),
                 'isIncome': txn.isIncome,
               }, SetOptions(merge: true));
+          await batch.commit();
 
-          txn.isSynced = true;
-          await txn.save();
+          for (var txn in unsynced) {
+            txn.isSynced = true;
+            await txn.save();
+          }
 
           debugPrint("Đã sync transaction: ${txn.id}");
         } catch (e) {
@@ -152,7 +158,7 @@ class _bottomSheetState extends State<bottomSheet> {
 
         txn.isSynced = true;
         await txn.save();
-        debugPrint("Đã sync lên Firebase ngay");
+        debugPrint("Đã sync lên Firebase");
       } catch (e) {
         debugPrint("Không sync được, sẽ thử lại sau: $e");
       }
