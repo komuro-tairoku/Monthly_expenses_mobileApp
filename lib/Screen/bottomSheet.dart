@@ -127,8 +127,7 @@ class _bottomSheetState extends State<bottomSheet> {
   }
 
   Future<void> _saveTransaction(TransactionModel txn) async {
-    await transactionBox.add(txn);
-    debugPrint("Đã lưu vào Hive");
+    await transactionBox.put(txn.id, txn);
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {

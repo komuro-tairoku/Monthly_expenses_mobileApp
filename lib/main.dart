@@ -17,13 +17,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Hive setup
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionModelAdapter());
   await Hive.openBox<TransactionModel>('transactions');
   await Hive.openBox('settings');
-
-  // Start background sync service
   SyncService.start();
 
   runApp(const ProviderScope(child: MyApp()));
@@ -49,12 +46,10 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   Future<void> _checkAppState() async {
     try {
-      // Kiểm tra user đã login thực sự chưa (không phải anonymous)
       final user = FirebaseAuth.instance.currentUser;
       if (user != null && !user.isAnonymous) {
         _isLoggedIn = true;
 
-        // CHỈ kiểm tra seenIntro khi đã login
         final doc = await FirebaseFirestore.instance
             .collection("settings")
             .doc(user.uid)

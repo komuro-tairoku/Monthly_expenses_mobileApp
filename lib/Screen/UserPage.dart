@@ -192,7 +192,6 @@ class _UserPageState extends ConsumerState<UserPage> {
                           _buildItem(context, Icons.notifications, "Thông báo"),
                           _buildItem(context, Icons.lock, "Riêng tư"),
 
-                          // 👉 Nút Đăng xuất
                           const SizedBox(height: 21),
                           GestureDetector(
                             onTap: () => _signOut(context),
