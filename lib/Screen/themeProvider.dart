@@ -29,7 +29,6 @@ class AppThemeState extends ChangeNotifier {
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
-      debugPrint('⚠️ Lỗi khởi tạo theme: $e');
       isDarkModeEnable = false;
       _isInitialized = true;
       notifyListeners();

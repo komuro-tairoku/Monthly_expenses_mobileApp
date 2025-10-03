@@ -2,27 +2,91 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../db/transaction.dart';
 import '../Services/hiveHelper.dart';
 
 class SyncService {
-  static StreamSubscription<List<ConnectivityResult>>? _subscription;
+  static var _subscription; // để Dart tự suy luận
   static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _firestoreListener;
 
   static bool _isPulling = false;
+  static bool _isStarted = false;
+  static bool _isSyncing = false;
+  static Timer? _debounceTimer;
 
+  /// Parse dữ liệu từ Firebase an toàn
+  static TransactionModel? _parseTransaction(Map<String, dynamic> data) {
+    try {
+      final id = data['id']?.toString() ?? '';
+      final category = data['category']?.toString() ?? '';
+      final note = data['note']?.toString() ?? '';
+
+      // Parse amount
+      double amount = 0.0;
+      final amountData = data['amount'];
+      if (amountData is num) {
+        amount = amountData.toDouble();
+      } else if (amountData is String) {
+        amount = double.tryParse(amountData) ?? 0.0;
+      }
+
+      // Parse date
+      DateTime date = DateTime.now();
+      final dateData = data['date'];
+      if (dateData is Timestamp) {
+        date = dateData.toDate();
+      } else if (dateData is num) {
+        // assume milliseconds since epoch
+        date = DateTime.fromMillisecondsSinceEpoch(dateData.toInt());
+      } else if (dateData is String) {
+        date = DateTime.tryParse(dateData) ?? DateTime.now();
+      }
+
+      final isIncomeRaw = data['isIncome'];
+      bool isIncome = false;
+      if (isIncomeRaw is bool) {
+        isIncome = isIncomeRaw;
+      } else if (isIncomeRaw is num) {
+        isIncome = isIncomeRaw != 0;
+      } else if (isIncomeRaw is String) {
+        isIncome = isIncomeRaw.toLowerCase() == 'true' || isIncomeRaw == '1';
+      }
+
+      return TransactionModel(
+        id: id,
+        category: category,
+        amount: amount,
+        note: note,
+        date: date,
+        isIncome: isIncome,
+        isSynced: true,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Khởi động SyncService
   static void start() {
-    _subscription = Connectivity().onConnectivityChanged.listen((results) {
-      if (results.isNotEmpty && results.first != ConnectivityResult.none) {
-        _syncUnsyncedTransactions();
+    if (_isStarted) {
+      return;
+    }
+    _isStarted = true;
+
+    // Listen connectivity changes
+    _subscription = Connectivity().onConnectivityChanged.listen((result) {
+      if (result != ConnectivityResult.none) {
+        _debounceTimer?.cancel();
+        _debounceTimer = Timer(const Duration(seconds: 2), () {
+          _syncUnsyncedTransactions();
+        });
       }
     });
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      pullFromFirebase();
+      pullFromFirebase().catchError((e) {});
       _listenRealtime(user.uid);
     }
   }
@@ -31,47 +95,76 @@ class SyncService {
   static void stop() {
     _subscription?.cancel();
     _firestoreListener?.cancel();
+    _debounceTimer?.cancel();
+    _isStarted = false;
   }
 
+  /// Đồng bộ các transactions chưa sync
   static Future<void> _syncUnsyncedTransactions() async {
+    if (_isSyncing) {
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    _isSyncing = true;
 
     try {
       final box = await HiveHelper.getTransactionBox();
       final unsynced = box.values.where((t) => !t.isSynced).toList();
 
-      for (var txn in unsynced) {
-        try {
-          await FirebaseFirestore.instance
+      if (unsynced.isEmpty) {
+        return;
+      }
+
+      const batchSize = 500;
+      for (var i = 0; i < unsynced.length; i += batchSize) {
+        final end = (i + batchSize < unsynced.length)
+            ? i + batchSize
+            : unsynced.length;
+        final chunk = unsynced.sublist(i, end);
+
+        final batch = FirebaseFirestore.instance.batch();
+
+        for (var txn in chunk) {
+          final docRef = FirebaseFirestore.instance
               .collection('transactions')
               .doc(user.uid)
               .collection('items')
-              .doc(txn.id)
-              .set({
-                'id': txn.id,
-                'category': txn.category,
-                'amount': txn.amount,
-                'note': txn.note,
-                'label': txn.note,
-                'date': Timestamp.fromDate(txn.date),
-                'isIncome': txn.isIncome,
-              }, SetOptions(merge: true));
+              .doc(txn.id);
 
-          txn.isSynced = true;
-          await txn.save();
-        } catch (e) {
-          print("❌ Sync thất bại cho txn ${txn.id}: $e");
+          batch.set(docRef, {
+            'id': txn.id.toString(),
+            'category': txn.category.toString(),
+            'amount': txn.amount.toDouble(),
+            'note': txn.note.toString(),
+            'date': Timestamp.fromDate(txn.date),
+            'isIncome': txn.isIncome == true,
+          }, SetOptions(merge: true));
         }
+
+        await batch.commit();
+
+        // NOTE: intentionally do NOT update the local `isSynced` flag here.
+        // Writing back to Hive immediately after the local write causes an
+        // extra box change notification which in turn can trigger duplicate
+        // UI rebuilds (observed as high rebuild counts). We rely on the
+        // realtime listener / pullFromFirebase to reconcile synced state.
       }
     } catch (e) {
-      print("❌ Lỗi khi sync: $e");
+    } finally {
+      _isSyncing = false;
     }
   }
 
   static Future<void> pullFromFirebase() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    if (_isPulling) {
+      return;
+    }
 
     _isPulling = true;
 
@@ -82,31 +175,30 @@ class SyncService {
           .collection('transactions')
           .doc(user.uid)
           .collection('items')
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('Pull timeout'),
+          );
 
+      final Map<String, TransactionModel> toPut = {};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-
-        final txn = TransactionModel(
-          id: data['id'],
-          category: data['category'],
-          amount: (data['amount'] as num).toDouble(),
-          note: data['note'],
-          date: (data['date'] as Timestamp).toDate(),
-          isIncome: data['isIncome'] ?? false,
-          isSynced: true,
-        );
-
-        await box.put(txn.id, txn);
+        // doc.data() in the typed snapshot is non-nullable, but keep defensive
+        // parsing inside _parseTransaction.
+        final txn = _parseTransaction(data);
+        if (txn != null) {
+          toPut[txn.id] = txn;
+        }
       }
+      if (toPut.isNotEmpty) await box.putAll(toPut);
     } catch (e) {
-      print("❌ Pull từ Firebase thất bại: $e");
     } finally {
       _isPulling = false;
     }
   }
 
-  /// Lắng nghe thay đổi realtime từ Firebase
+  /// Lắng nghe realtime updates
   static void _listenRealtime(String uid) async {
     try {
       final box = await HiveHelper.getTransactionBox();
@@ -123,19 +215,15 @@ class SyncService {
               final data = change.doc.data();
               if (data == null) continue;
 
-              final txn = TransactionModel(
-                id: data['id'],
-                category: data['category'],
-                amount: (data['amount'] as num).toDouble(),
-                note: data['note'],
-                date: (data['date'] as Timestamp).toDate(),
-                isIncome: data['isIncome'] ?? false,
-                isSynced: true,
-              );
+              final txn = _parseTransaction(data);
+              if (txn == null) {
+                continue;
+              }
+
+              final existing = box.get(txn.id);
 
               if (change.type == DocumentChangeType.added ||
                   change.type == DocumentChangeType.modified) {
-                final existing = box.get(txn.id);
                 if (existing == null || !existing.isSynced) {
                   box.put(txn.id, txn);
                 }
@@ -143,9 +231,12 @@ class SyncService {
                 box.delete(txn.id);
               }
             }
-          });
-    } catch (e) {
-      print("❌ Lỗi khi listen realtime: $e");
-    }
+          }, onError: (error) {});
+    } catch (e) {}
+  }
+
+  /// Force sync ngay lập tức
+  static Future<void> forceSyncNow() async {
+    await _syncUnsyncedTransactions();
   }
 }

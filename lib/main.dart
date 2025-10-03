@@ -21,8 +21,6 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionModelAdapter());
 
-  SyncService.start();
-
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -41,7 +39,22 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    _checkAppState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      await _checkAppState();
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !user.isAnonymous) {
+        SyncService.start();
+      }
+    } catch (e) {
+      debugPrint("Error during initialization: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _checkAppState() async {
@@ -53,21 +66,29 @@ class _MyAppState extends ConsumerState<MyApp> {
         final doc = await FirebaseFirestore.instance
             .collection("settings")
             .doc(user.uid)
-            .get();
+            .get()
+            .timeout(
+              const Duration(seconds: 5),
+              onTimeout: () {
+                debugPrint("Firestore timeout, using default value");
+                return FirebaseFirestore.instance
+                    .collection("settings")
+                    .doc(user.uid)
+                    .get();
+              },
+            );
+
         if (doc.exists && (doc.data()?['seenIntro'] == true)) {
           _seenIntro = true;
         }
       } else {
-        // Lazy open settings box qua HiveHelper
         final box = await HiveHelper.getSettingsBox();
         _seenIntro = box.get('seenIntro', defaultValue: false);
       }
     } catch (e) {
-      debugPrint("⚠️ Firestore error: $e");
+      debugPrint("Error checking app state: $e");
       _seenIntro = false;
       _isLoggedIn = false;
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -75,11 +96,24 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final appThemeState = ref.watch(appThemeStateNotifier);
 
-    // Đợi cả app state và theme đều khởi tạo xong
     if (_loading || !appThemeState.isInitialized) {
-      return const MaterialApp(
+      return MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Color(0xFF6B43FF)),
+                const SizedBox(height: 16),
+                Text(
+                  'Đang khởi động...',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -105,5 +139,11 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/home': (context) => const Home(),
       },
     );
+  }
+
+  @override
+  void dispose() {
+    SyncService.stop();
+    super.dispose();
   }
 }

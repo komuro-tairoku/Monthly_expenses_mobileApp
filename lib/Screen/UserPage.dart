@@ -70,9 +70,7 @@ class _UserPageState extends ConsumerState<UserPage> {
       setState(() {
         _avatarImage = savedImage;
       });
-    } catch (e) {
-      debugPrint("⚠️ Error picking image: $e");
-    }
+    } catch (e) {}
   }
 
   Future<void> _signOut(BuildContext context) async {
@@ -88,9 +86,7 @@ class _UserPageState extends ConsumerState<UserPage> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Đăng xuất thành công")));
       }
-    } catch (e) {
-      debugPrint("⚠️ Sign out error: $e");
-    }
+    } catch (e) {}
   }
 
   @override

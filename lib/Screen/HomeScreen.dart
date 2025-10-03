@@ -14,7 +14,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String _formatAmount(double value) => value.toStringAsFixed(0);
+  final NumberFormat _amountFormatter = NumberFormat('#,##0', 'en_US');
+  String _formatAmount(double value) => _amountFormatter.format(value);
   String _formatDate(DateTime date) =>
       DateFormat('dd/MM/yyyy HH:mm').format(date);
 
@@ -283,7 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showEditDialog(TransactionModel txn) {
     final noteController = TextEditingController(text: txn.note);
-    final amountController = TextEditingController(text: txn.amount.toString());
+    final amountController = TextEditingController(
+      text: _formatAmount(txn.amount),
+    );
 
     showDialog(
       context: _scaffoldKey.currentContext!,
@@ -314,8 +317,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ElevatedButton(
               onPressed: () async {
                 final newNote = noteController.text.trim();
-                final newAmount =
-                    double.tryParse(amountController.text.trim()) ?? txn.amount;
+                final raw = amountController.text.trim().replaceAll(',', '');
+                final newAmount = double.tryParse(raw) ?? txn.amount;
                 if (newNote.isNotEmpty) {
                   await TransactionService.updateTransaction(
                     txn,

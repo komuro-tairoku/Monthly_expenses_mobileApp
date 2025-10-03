@@ -17,14 +17,33 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return TransactionModel(
-      id: fields[0] as String,
-      category: fields[1] as String,
-      amount: fields[2] as double,
-      note: fields[3] as String,
-      date: fields[4] as DateTime,
-      isIncome: fields[5] as bool,
-      isSynced: fields[6] as bool,
+      id: (fields[0] == null) ? '' : fields[0].toString(),
+      category: (fields[1] == null) ? '' : fields[1].toString(),
+      amount: _readAmount(fields[2]),
+      note: (fields[3] == null) ? '' : fields[3].toString(),
+      date: _readDate(fields[4]),
+      isIncome: (fields[5] is bool)
+          ? fields[5] as bool
+          : (fields[5] == 1 || fields[5] == 'true'),
+      isSynced: (fields[6] is bool)
+          ? fields[6] as bool
+          : (fields[6] == 1 || fields[6] == 'true'),
     );
+  }
+
+  double _readAmount(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  DateTime _readDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.now();
   }
 
   @override

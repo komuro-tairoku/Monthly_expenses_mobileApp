@@ -3,7 +3,6 @@ import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hive/hive.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../db/transaction.dart';
 import '../Services/hiveHelper.dart';
@@ -20,9 +19,26 @@ class _BottomSheetState extends State<bottomSheet> {
   final PageController _pageController = PageController();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
-  String amount = "";
+  String _amountRaw = ""; // store digits only, used for parsing
   String? selectedCategory;
   String note = "";
+
+  String _formatWithCommas(String digits) {
+    if (digits.isEmpty) return '0';
+    // remove any non-digit just in case
+    final s = digits.replaceAll(RegExp(r'[^0-9]'), '');
+    if (s.isEmpty) return '0';
+    final buffer = StringBuffer();
+    int len = s.length;
+    int firstGroup = len % 3;
+    if (firstGroup == 0) firstGroup = 3;
+    buffer.write(s.substring(0, firstGroup));
+    for (int i = firstGroup; i < len; i += 3) {
+      buffer.write(',');
+      buffer.write(s.substring(i, i + 3));
+    }
+    return buffer.toString();
+  }
 
   final List<Map<String, dynamic>> chiOptions = [
     {"icon": Icons.shopping_cart, "label": "Mua sắm"},
@@ -81,49 +97,51 @@ class _BottomSheetState extends State<bottomSheet> {
       final unsynced = box.values.where((t) => !t.isSynced).toList();
       if (unsynced.isEmpty) return;
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      for (var txn in unsynced) {
+      // Schedule background upload so UI thread isn't blocked. We avoid
+      // writing back to Hive here to prevent duplicate box change events
+      // (items are already stored locally when created).
+      Future(() async {
         try {
-          final docRef = FirebaseFirestore.instance
-              .collection('transactions')
-              .doc(user.uid)
-              .collection('items')
-              .doc(txn.id);
+          final batch = FirebaseFirestore.instance.batch();
+          for (var txn in unsynced) {
+            final docRef = FirebaseFirestore.instance
+                .collection('transactions')
+                .doc(user.uid)
+                .collection('items')
+                .doc(txn.id);
 
-          batch.set(docRef, {
-            'id': txn.id,
-            'category': txn.category,
-            'amount': txn.amount,
-            'note': txn.note,
-            'label': txn.note,
-            'date': Timestamp.fromDate(txn.date),
-            'isIncome': txn.isIncome,
-          }, SetOptions(merge: true));
-        } catch (e) {
-          debugPrint("Lỗi sync transaction ${txn.id}: $e");
-        }
-      }
+            batch.set(docRef, {
+              'id': txn.id,
+              'category': txn.category,
+              'amount': txn.amount,
+              'note': txn.note,
+              'label': txn.note,
+              'date': Timestamp.fromDate(txn.date),
+              'isIncome': txn.isIncome,
+            }, SetOptions(merge: true));
+          }
+          await batch.commit();
 
-      await batch.commit();
-
-      for (var txn in unsynced) {
-        txn.isSynced = true;
-        await txn.save();
-      }
-
-      debugPrint("Hoàn tất sync!");
-    } catch (e) {
-      debugPrint("Lỗi khi sync: $e");
-    }
+          // Intentionally skip writing isSynced back to Hive here to avoid
+          // causing additional box change notifications which lead to
+          // redundant UI rebuilds. The realtime listener / pull path will
+          // reconcile sync state when appropriate.
+        } catch (_) {}
+      });
+    } catch (e) {}
   }
 
   Future<void> _saveTransaction(TransactionModel txn) async {
     final box = await HiveHelper.getTransactionBox();
-    await box.put(txn.id, txn);
+    // Persist locally first (quick). Use fire-and-forget to avoid blocking
+    // the UI thread on slow IO.
+    box.put(txn.id, txn);
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    // Fire-and-forget upload: do not await this in the caller.
+    Future(() async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
       try {
         final connectivityResults = await Connectivity().checkConnectivity();
         if (connectivityResults.isEmpty ||
@@ -143,15 +161,15 @@ class _BottomSheetState extends State<bottomSheet> {
               'label': txn.note,
               'date': Timestamp.fromDate(txn.date),
               'isIncome': txn.isIncome,
-            });
+            }, SetOptions(merge: true));
 
-        txn.isSynced = true;
-        await txn.save();
-        debugPrint("Đã sync lên Firebase");
-      } catch (e) {
-        debugPrint("Không sync được, sẽ thử lại sau: $e");
+        // Do not write isSynced back immediately to avoid causing another
+        // Hive notification (which would trigger UI rebuilds). The global
+        // sync service will reconcile state as needed.
+      } catch (_) {
+        // ignore network errors; sync service will retry later
       }
-    }
+    });
   }
 
   @override
@@ -292,7 +310,7 @@ class _BottomSheetState extends State<bottomSheet> {
 
   void _showAmountSheet(String category) {
     setState(() => selectedCategory = category);
-    amount = "";
+    _amountRaw = "";
     note = "";
 
     showModalBottomSheet(
@@ -302,13 +320,16 @@ class _BottomSheetState extends State<bottomSheet> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             void addNumber(String num) {
-              setModalState(() => amount += num);
+              setModalState(() => _amountRaw += num);
             }
 
             void deleteNumber() {
-              if (amount.isNotEmpty) {
+              if (_amountRaw.isNotEmpty) {
                 setModalState(
-                  () => amount = amount.substring(0, amount.length - 1),
+                  () => _amountRaw = _amountRaw.substring(
+                    0,
+                    _amountRaw.length - 1,
+                  ),
                 );
               }
             }
@@ -332,7 +353,7 @@ class _BottomSheetState extends State<bottomSheet> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    amount.isEmpty ? "0" : amount,
+                    _formatWithCommas(_amountRaw),
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -340,9 +361,6 @@ class _BottomSheetState extends State<bottomSheet> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium!.copyWith(fontSize: 20),
                     decoration: const InputDecoration(labelText: "Ghi chú"),
                     onChanged: (val) => note = val,
                   ),
@@ -369,10 +387,10 @@ class _BottomSheetState extends State<bottomSheet> {
                         );
                       } else if (index == 11) {
                         return ElevatedButton(
-                          onPressed: () async {
-                            if (amount.isNotEmpty &&
-                                double.tryParse(amount) != null &&
-                                double.parse(amount) > 0 &&
+                          onPressed: () {
+                            if (_amountRaw.isNotEmpty &&
+                                double.tryParse(_amountRaw) != null &&
+                                double.parse(_amountRaw) > 0 &&
                                 selectedCategory != null) {
                               final txn = TransactionModel(
                                 id: DateTime.now().millisecondsSinceEpoch
@@ -380,23 +398,21 @@ class _BottomSheetState extends State<bottomSheet> {
                                 note: note.isNotEmpty
                                     ? note
                                     : selectedCategory!,
-                                amount: double.parse(amount),
+                                amount: double.parse(_amountRaw),
                                 isIncome: value == 1,
                                 category: selectedCategory!,
                                 date: DateTime.now(),
                                 isSynced: false,
                               );
 
-                              await _saveTransaction(txn);
+                              // Fire and forget: persist locally and upload in background
+                              _saveTransaction(txn);
 
                               if (mounted) {
-                                // Đóng bottom sheet nhập số tiền
+                                // Close sheets and show snackbar
+                                Navigator.of(context).pop();
                                 Navigator.of(context).pop();
 
-                                // Đóng bottom sheet chính
-                                Navigator.of(context).pop();
-
-                                // Hiện snackbar thông báo thành công
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Row(

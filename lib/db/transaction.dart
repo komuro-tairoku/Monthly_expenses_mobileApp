@@ -49,13 +49,33 @@ class TransactionModel extends HiveObject {
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
-      id: map['id'] ?? '',
-      category: map['category'] ?? '',
-      amount: (map['amount'] ?? 0).toDouble(),
-      note: map['note'] ?? '',
-      date: DateTime.parse(map['date']),
-      isIncome: map['isIncome'] ?? false,
-      isSynced: map['isSynced'] ?? false,
+      id: (map['id'] == null) ? '' : map['id'].toString(),
+      category: (map['category'] == null) ? '' : map['category'].toString(),
+      amount: _parseToDouble(map['amount']),
+      note: (map['note'] == null) ? '' : map['note'].toString(),
+      date: _parseToDateTime(map['date']),
+      isIncome: map['isIncome'] == true,
+      isSynced: map['isSynced'] == true,
     );
+  }
+
+  static double _parseToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  static DateTime _parseToDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    if (value is int) {
+      // assume milliseconds since epoch
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    return DateTime.now();
   }
 }

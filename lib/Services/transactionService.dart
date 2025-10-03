@@ -19,7 +19,6 @@ class TransactionService {
       } catch (e) {
         txn.isSynced = false;
         await txn.save();
-        print("❌ Lỗi xóa từ Firebase: $e");
       }
     }
   }
@@ -49,7 +48,7 @@ class TransactionService {
           'amount': newAmount,
         });
       } catch (e) {
-        print("❌ Lỗi cập nhật Firebase: $e");
+        // ignore
       }
     }
   }

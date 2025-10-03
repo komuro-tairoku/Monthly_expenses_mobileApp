@@ -39,9 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
               .doc(user.uid)
               .set({'seenIntro': true}, SetOptions(merge: true))
               .timeout(const Duration(seconds: 5));
-        } catch (e) {
-          debugPrint("⚠️ Failed to sync seenIntro: $e");
-        }
+        } catch (e) {}
       }
 
       if (mounted) {
@@ -91,9 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
             .doc(user.uid)
             .set({'seenIntro': true}, SetOptions(merge: true))
             .timeout(const Duration(seconds: 5));
-      } catch (e) {
-        debugPrint("⚠️ Failed to sync seenIntro: $e");
-      }
+      } catch (e) {}
       if (mounted) {
         setState(() => _isLoading = false);
         Navigator.pushReplacement(
