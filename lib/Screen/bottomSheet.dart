@@ -6,15 +6,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../db/transaction.dart';
+import '../Services/hiveHelper.dart';
 
 class bottomSheet extends StatefulWidget {
   const bottomSheet({super.key});
 
   @override
-  State<bottomSheet> createState() => _bottomSheetState();
+  State<bottomSheet> createState() => _BottomSheetState();
 }
 
-class _bottomSheetState extends State<bottomSheet> {
+class _BottomSheetState extends State<bottomSheet> {
   int value = 0;
   final PageController _pageController = PageController();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
@@ -22,9 +23,6 @@ class _bottomSheetState extends State<bottomSheet> {
   String amount = "";
   String? selectedCategory;
   String note = "";
-
-  Box<TransactionModel> get transactionBox =>
-      Hive.box<TransactionModel>('transactions');
 
   final List<Map<String, dynamic>> chiOptions = [
     {"icon": Icons.shopping_cart, "label": "Mua sắm"},
@@ -50,9 +48,6 @@ class _bottomSheetState extends State<bottomSheet> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncUnsyncedTransactions();
-    });
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       results,
@@ -77,47 +72,44 @@ class _bottomSheetState extends State<bottomSheet> {
     if (user == null) return;
 
     try {
-      final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        debugPrint("Không có kết nối mạng");
+      final connectivityResults = await Connectivity().checkConnectivity();
+      if (connectivityResults.isEmpty ||
+          connectivityResults.first == ConnectivityResult.none)
         return;
-      }
 
-      final unsynced = transactionBox.values.where((t) => !t.isSynced).toList();
-
-      if (unsynced.isEmpty) {
-        return;
-      }
+      final box = await HiveHelper.getTransactionBox();
+      final unsynced = box.values.where((t) => !t.isSynced).toList();
+      if (unsynced.isEmpty) return;
 
       final batch = FirebaseFirestore.instance.batch();
 
       for (var txn in unsynced) {
         try {
-          await FirebaseFirestore.instance
+          final docRef = FirebaseFirestore.instance
               .collection('transactions')
               .doc(user.uid)
               .collection('items')
-              .doc(txn.id)
-              .set({
-                'id': txn.id,
-                'category': txn.category,
-                'amount': txn.amount,
-                'note': txn.note,
-                'label': txn.note,
-                'date': Timestamp.fromDate(txn.date),
-                'isIncome': txn.isIncome,
-              }, SetOptions(merge: true));
-          await batch.commit();
+              .doc(txn.id);
 
-          for (var txn in unsynced) {
-            txn.isSynced = true;
-            await txn.save();
-          }
-
-          debugPrint("Đã sync transaction: ${txn.id}");
+          batch.set(docRef, {
+            'id': txn.id,
+            'category': txn.category,
+            'amount': txn.amount,
+            'note': txn.note,
+            'label': txn.note,
+            'date': Timestamp.fromDate(txn.date),
+            'isIncome': txn.isIncome,
+          }, SetOptions(merge: true));
         } catch (e) {
           debugPrint("Lỗi sync transaction ${txn.id}: $e");
         }
+      }
+
+      await batch.commit();
+
+      for (var txn in unsynced) {
+        txn.isSynced = true;
+        await txn.save();
       }
 
       debugPrint("Hoàn tất sync!");
@@ -127,18 +119,16 @@ class _bottomSheetState extends State<bottomSheet> {
   }
 
   Future<void> _saveTransaction(TransactionModel txn) async {
-    await transactionBox.put(txn.id, txn);
+    final box = await HiveHelper.getTransactionBox();
+    await box.put(txn.id, txn);
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final connectivityResult = await Connectivity().checkConnectivity();
-
-        if (connectivityResult.isEmpty ||
-            connectivityResult.first == ConnectivityResult.none) {
-          debugPrint("Offline - sẽ sync sau");
+        final connectivityResults = await Connectivity().checkConnectivity();
+        if (connectivityResults.isEmpty ||
+            connectivityResults.first == ConnectivityResult.none)
           return;
-        }
 
         await FirebaseFirestore.instance
             .collection('transactions')
@@ -400,32 +390,36 @@ class _bottomSheetState extends State<bottomSheet> {
                               await _saveTransaction(txn);
 
                               if (mounted) {
-                                final connectivityResult = await Connectivity()
-                                    .checkConnectivity();
-                                final isOnline =
-                                    connectivityResult.isNotEmpty &&
-                                    connectivityResult.first !=
-                                        ConnectivityResult.none;
+                                // Đóng bottom sheet nhập số tiền
+                                Navigator.of(context).pop();
 
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text("Thành công"),
-                                    content: Text(
-                                      value == 1
-                                          ? "Đã thêm thu nhập!}"
-                                          : "Đã thêm chi tiêu!",
+                                // Đóng bottom sheet chính
+                                Navigator.of(context).pop();
+
+                                // Hiện snackbar thông báo thành công
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          value == 1
+                                              ? "Đã thêm thu nhập!"
+                                              : "Đã thêm chi tiêu!",
+                                        ),
+                                      ],
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(ctx).pop();
-                                          Navigator.of(context).pop();
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: const Text("OK"),
-                                      ),
-                                    ],
+                                    backgroundColor: Colors.green.shade600,
+                                    behavior: SnackBarBehavior.floating,
+                                    margin: const EdgeInsets.all(16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    duration: const Duration(seconds: 2),
                                   ),
                                 );
                               }

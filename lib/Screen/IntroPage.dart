@@ -16,7 +16,6 @@ class _IntroPageState extends State<IntroPage> {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      // Nếu chưa đăng nhập, chuyển đến màn hình login
       if (context.mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }

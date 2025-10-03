@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:monthly_expenses_mobile_app/Screen/loginScreen.dart';
-import 'firebase_options.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'Screen/IntroPage.dart';
-import 'Screen/theme.dart';
-import 'Screen/themeProvider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
+import 'firebase_options.dart';
 import './db/transaction.dart';
 import './Services/syncService.dart';
+import 'Screen/IntroPage.dart';
+import 'Screen/loginScreen.dart';
 import 'Screen/bottomNavBar.dart';
+import 'Screen/theme.dart';
+import 'Screen/themeProvider.dart';
+import 'Services/hiveHelper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionModelAdapter());
-  await Hive.openBox<TransactionModel>('transactions');
-  await Hive.openBox('settings');
+
   SyncService.start();
 
   runApp(const ProviderScope(child: MyApp()));
@@ -58,7 +58,8 @@ class _MyAppState extends ConsumerState<MyApp> {
           _seenIntro = true;
         }
       } else {
-        final box = Hive.box('settings');
+        // Lazy open settings box qua HiveHelper
+        final box = await HiveHelper.getSettingsBox();
         _seenIntro = box.get('seenIntro', defaultValue: false);
       }
     } catch (e) {
@@ -74,8 +75,10 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final appThemeState = ref.watch(appThemeStateNotifier);
 
-    if (_loading) {
+    // Đợi cả app state và theme đều khởi tạo xong
+    if (_loading || !appThemeState.isInitialized) {
       return const MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }

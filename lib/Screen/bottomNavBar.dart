@@ -14,8 +14,9 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
+  late AnimationController _fabController;
 
   static final List<Widget> _screens = [
     const HomeScreen(),
@@ -23,6 +24,21 @@ class _HomeState extends State<Home> {
     const Budget(),
     const UserPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fabController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    super.dispose();
+  }
 
   void _onItemTap(int index) {
     setState(() {
@@ -33,75 +49,137 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEEEEEE),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _screens[_selectedIndex],
-
-      bottomNavigationBar: BottomAppBar(
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              buildNavBarItem(CupertinoIcons.house_alt_fill, 'Home', 0),
-              buildNavBarItem(CupertinoIcons.chart_pie_fill, 'Báo cáo', 1),
-              const SizedBox(width: 25),
-              buildNavBarItem(
-                CupertinoIcons.money_dollar_circle_fill,
-                'Ngân sách',
-                2,
-              ),
-              buildNavBarItem(CupertinoIcons.person_fill, 'User', 3),
-            ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  icon: CupertinoIcons.house_alt_fill,
+                  label: 'Trang chủ',
+                  index: 0,
+                ),
+                _buildNavItem(
+                  icon: CupertinoIcons.chart_pie_fill,
+                  label: 'Báo cáo',
+                  index: 1,
+                ),
+                const SizedBox(width: 60),
+                _buildNavItem(
+                  icon: CupertinoIcons.money_dollar_circle_fill,
+                  label: 'Ngân sách',
+                  index: 2,
+                ),
+                _buildNavItem(
+                  icon: CupertinoIcons.person_fill,
+                  label: 'Cá nhân',
+                  index: 3,
+                ),
+              ],
+            ),
           ),
         ),
       ),
-
-      floatingActionButton: RawMaterialButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (context) {
-              return const bottomSheet();
-            },
-          );
-        },
-        shape: const CircleBorder(),
-        fillColor: Colors.white,
-        elevation: 10,
-        child: SvgPicture.asset(
-          'assets/icons/add.svg',
-          width: 60,
-          height: 60,
-          color: const Color(0xFF6B43FF),
+      floatingActionButton: ScaleTransition(
+        scale: Tween<double>(begin: 1.0, end: 0.85).animate(
+          CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            _fabController.forward().then((_) => _fabController.reverse());
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const bottomSheet(),
+            );
+          },
+          elevation: 8,
+          backgroundColor: const Color(0xFF6B43FF),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6B43FF), Color(0xFF8B5FFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6B43FF).withOpacity(0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget buildNavBarItem(IconData icon, String label, int index) {
-    final bool isSelected = _selectedIndex == index;
-    return InkWell(
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = _selectedIndex == index;
+
+    return GestureDetector(
       onTap: () => _onItemTap(index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected
-                ? const Color(0xFF6B43FF)
-                : const Color(0xFF828282),
-          ),
-          Text(
-            label,
-            style: TextStyle(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6B43FF).withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
               color: isSelected
                   ? const Color(0xFF6B43FF)
-                  : const Color(0xFF828282),
+                  : Colors.grey.shade600,
+              size: 26,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? const Color(0xFF6B43FF)
+                    : Colors.grey.shade600,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

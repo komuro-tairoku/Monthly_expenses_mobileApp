@@ -10,7 +10,7 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  bool _agree = false; // trạng thái checkbox
+  bool _agree = false;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                             );
                           }
-                        : null, // nếu chưa tick checkbox thì button disabled
+                        : null,
                     child: const Text(
                       "Sign up",
                       style: TextStyle(fontSize: 16, color: Colors.white),
@@ -166,7 +166,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const Text("Already have an account? "),
                       TextButton(
                         onPressed: () {
-                          Navigator.pop(context); // quay lại màn Login
+                          Navigator.pop(context); 
                         },
                         child: const Text("Sign in"),
                       ),
