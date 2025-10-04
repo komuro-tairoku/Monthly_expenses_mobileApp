@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../db/transaction.dart';
-import '../Services/hiveHelper.dart';
+import '../Services/hive_helper.dart';
 
 class bottomSheet extends StatefulWidget {
   const bottomSheet({super.key});
@@ -19,7 +19,7 @@ class _BottomSheetState extends State<bottomSheet> {
   final PageController _pageController = PageController();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
-  String _amountRaw = ""; // store digits only, used for parsing
+  String _amountRaw = "";
   String? selectedCategory;
   String note = "";
 
@@ -96,10 +96,6 @@ class _BottomSheetState extends State<bottomSheet> {
       final box = await HiveHelper.getTransactionBox();
       final unsynced = box.values.where((t) => !t.isSynced).toList();
       if (unsynced.isEmpty) return;
-
-      // Schedule background upload so UI thread isn't blocked. We avoid
-      // writing back to Hive here to prevent duplicate box change events
-      // (items are already stored locally when created).
       Future(() async {
         try {
           final batch = FirebaseFirestore.instance.batch();
@@ -121,11 +117,6 @@ class _BottomSheetState extends State<bottomSheet> {
             }, SetOptions(merge: true));
           }
           await batch.commit();
-
-          // Intentionally skip writing isSynced back to Hive here to avoid
-          // causing additional box change notifications which lead to
-          // redundant UI rebuilds. The realtime listener / pull path will
-          // reconcile sync state when appropriate.
         } catch (_) {}
       });
     } catch (e) {}
@@ -133,11 +124,8 @@ class _BottomSheetState extends State<bottomSheet> {
 
   Future<void> _saveTransaction(TransactionModel txn) async {
     final box = await HiveHelper.getTransactionBox();
-    // Persist locally first (quick). Use fire-and-forget to avoid blocking
-    // the UI thread on slow IO.
     box.put(txn.id, txn);
 
-    // Fire-and-forget upload: do not await this in the caller.
     Future(() async {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -162,13 +150,7 @@ class _BottomSheetState extends State<bottomSheet> {
               'date': Timestamp.fromDate(txn.date),
               'isIncome': txn.isIncome,
             }, SetOptions(merge: true));
-
-        // Do not write isSynced back immediately to avoid causing another
-        // Hive notification (which would trigger UI rebuilds). The global
-        // sync service will reconcile state as needed.
-      } catch (_) {
-        // ignore network errors; sync service will retry later
-      }
+      } catch (_) {}
     });
   }
 
@@ -361,7 +343,13 @@ class _BottomSheetState extends State<bottomSheet> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    decoration: const InputDecoration(labelText: "Ghi chú"),
+                    decoration: const InputDecoration(
+                      labelText: "Ghi chú",
+                      labelStyle: TextStyle(fontSize: 20),
+                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium!.copyWith(fontSize: 20),
                     onChanged: (val) => note = val,
                   ),
                   const SizedBox(height: 16),

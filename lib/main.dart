@@ -7,13 +7,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'firebase_options.dart';
 import './db/transaction.dart';
-import './Services/syncService.dart';
-import 'Screen/IntroPage.dart';
-import 'Screen/loginScreen.dart';
-import 'Screen/bottomNavBar.dart';
+import './Services/sync_service.dart';
+import 'Screen/intro_page.dart';
+import 'Screen/login_screen.dart';
+import 'Screen/bottom_nav_bar.dart';
 import 'Screen/theme.dart';
-import 'Screen/themeProvider.dart';
-import 'Services/hiveHelper.dart';
+import 'Screen/theme_provider.dart';
+import 'Services/hive_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

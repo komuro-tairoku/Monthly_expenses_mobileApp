@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'HomeScreen.dart';
-import 'Statement.dart';
-import 'Budget.dart';
-import 'UserPage.dart';
-import 'bottomSheet.dart';
+import 'home_screen.dart';
+import 'statement.dart';
+import 'budget.dart';
+import 'user_page.dart';
+import 'bottom_sheet.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});

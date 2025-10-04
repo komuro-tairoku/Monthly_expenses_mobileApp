@@ -73,7 +73,6 @@ class TransactionModel extends HiveObject {
       return DateTime.tryParse(value) ?? DateTime.now();
     }
     if (value is int) {
-      // assume milliseconds since epoch
       return DateTime.fromMillisecondsSinceEpoch(value);
     }
     return DateTime.now();

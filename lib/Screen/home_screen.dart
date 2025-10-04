@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../db/transaction.dart';
-import '../Services/transactionService.dart';
+import '../Services/transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Column(
                 children: [
-                  // Stats Card
                   Container(
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(20),
@@ -120,7 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // Transaction List
                   Expanded(
                     child: transactions.isEmpty
                         ? const Center(
