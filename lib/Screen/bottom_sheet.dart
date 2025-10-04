@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -49,16 +48,19 @@ class _BottomSheetState extends State<bottomSheet> {
     {"icon": Icons.brush, "label": "Sắc đẹp"},
     {"icon": Icons.sports_soccer, "label": "Thể thao"},
     {"icon": Icons.people, "label": "Xã hội"},
-    {"icon": Icons.directions_bus, "label": "Vận tải"},
+    {"icon": Icons.home, "label": "Nhà ở"},
+    {"icon": Icons.electric_bolt_outlined, "label": "Tiền điện"},
+    {"icon": Icons.water_drop_rounded, "label": "Tiền nước"},
     {"icon": Icons.checkroom, "label": "Quần áo"},
-    {"icon": Icons.directions_car, "label": "Xe hơi"},
-    {"icon": Icons.local_bar, "label": "Rượu"},
+    {"icon": Icons.directions_car, "label": "Đi lại"},
+    {"icon": Icons.add, "label": "Khác"},
   ];
 
   final List<Map<String, dynamic>> thuOptions = [
     {"icon": Icons.payments, "label": "Tiền lương"},
     {"icon": Icons.card_giftcard, "label": "Phụ cấp"},
     {"icon": Icons.star, "label": "Thưởng"},
+    {"icon": Icons.add, "label": "Khác"},
   ];
 
   @override
@@ -165,8 +167,14 @@ class _BottomSheetState extends State<bottomSheet> {
         child: Column(
           children: [
             Container(
-              height: 150,
-              decoration: const BoxDecoration(color: Color(0xFF6B43FF)),
+              height: 180,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [const Color(0xFF6B43FF), const Color(0xFF8B5FFF)],
+                ),
+              ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -175,55 +183,84 @@ class _BottomSheetState extends State<bottomSheet> {
                     child: Column(
                       children: [
                         const Text(
-                          'Thêm Thu - Chi',
+                          'Thêm Giao Dịch',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 25,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        AnimatedToggleSwitch<int>.size(
-                          animationDuration: const Duration(milliseconds: 300),
-                          current: value,
-                          values: const [0, 1],
-                          indicatorSize: const Size(100, 35),
-                          borderWidth: 5,
-                          style: ToggleStyle(
-                            borderColor: Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            indicatorColor: Colors.grey.shade300,
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          styleBuilder: (i) =>
-                              ToggleStyle(indicatorColor: Colors.green[600]),
-                          iconBuilder: (i) => Center(
-                            child: Text(
-                              i == 0 ? "Tiền Chi" : "Tiền Thu",
-                              style: Theme.of(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildToggleButton(
                                 context,
-                              ).textTheme.bodySmall?.copyWith(fontSize: 17),
-                            ),
+                                label: "Tiền Chi",
+                                icon: Icons.arrow_upward_rounded,
+                                isSelected: value == 0,
+                                color: Colors.red.shade400,
+                                onTap: () {
+                                  setState(() => value = 0);
+                                  _pageController.animateToPage(
+                                    0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              _buildToggleButton(
+                                context,
+                                label: "Tiền Thu",
+                                icon: Icons.arrow_downward_rounded,
+                                isSelected: value == 1,
+                                color: Colors.green.shade400,
+                                onTap: () {
+                                  setState(() => value = 1);
+                                  _pageController.animateToPage(
+                                    1,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                          onChanged: (i) {
-                            setState(() => value = i);
-                            _pageController.animateToPage(
-                              i,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          },
                         ),
                       ],
                     ),
                   ),
                   Positioned(
-                    left: 0,
-                    top: 35,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        size: 25,
-                        color: Color(0xFFE0E0E0),
+                    left: 8,
+                    top: 40,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -295,161 +332,510 @@ class _BottomSheetState extends State<bottomSheet> {
     _amountRaw = "";
     note = "";
 
+    final noteController = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            // ====== Các hàm xử lý ======
             void addNumber(String num) {
               setModalState(() => _amountRaw += num);
             }
 
             void deleteNumber() {
               if (_amountRaw.isNotEmpty) {
-                setModalState(
-                  () => _amountRaw = _amountRaw.substring(
-                    0,
-                    _amountRaw.length - 1,
-                  ),
-                );
+                setModalState(() {
+                  _amountRaw = _amountRaw.substring(0, _amountRaw.length - 1);
+                });
               }
             }
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 16,
-                right: 16,
-                top: 16,
+            List<int> getSuggestions() {
+              if (_amountRaw.isEmpty) return [];
+              final currentValue = int.tryParse(_amountRaw);
+              if (currentValue == null) return [];
+
+              // Gợi ý nhân 1000, 10000, 100000 nếu số nhỏ
+              if (currentValue < 100) {
+                return [
+                  currentValue * 1000,
+                  currentValue * 10000,
+                  currentValue * 100000,
+                ];
+              }
+              return [];
+            }
+
+            // ====== Giao diện Bottom Sheet ======
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Danh mục: $category",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _formatWithCommas(_amountRaw),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: "Ghi chú",
-                      labelStyle: TextStyle(fontSize: 20),
-                    ),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium!.copyWith(fontSize: 20),
-                    onChanged: (val) => note = val,
-                  ),
-                  const SizedBox(height: 16),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 12,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.5,
-                        ),
-                    itemBuilder: (context, index) {
-                      if (index == 9) {
-                        return TextButton(
-                          onPressed: deleteNumber,
-                          child: const Icon(Icons.backspace),
-                        );
-                      } else if (index == 10) {
-                        return TextButton(
-                          onPressed: () => addNumber("0"),
-                          child: const Text("0"),
-                        );
-                      } else if (index == 11) {
-                        return ElevatedButton(
-                          onPressed: () {
-                            if (_amountRaw.isNotEmpty &&
-                                double.tryParse(_amountRaw) != null &&
-                                double.parse(_amountRaw) > 0 &&
-                                selectedCategory != null) {
-                              final txn = TransactionModel(
-                                id: DateTime.now().millisecondsSinceEpoch
-                                    .toString(),
-                                note: note.isNotEmpty
-                                    ? note
-                                    : selectedCategory!,
-                                amount: double.parse(_amountRaw),
-                                isIncome: value == 1,
-                                category: selectedCategory!,
-                                date: DateTime.now(),
-                                isSynced: false,
-                              );
-
-                              // Fire and forget: persist locally and upload in background
-                              _saveTransaction(txn);
-
-                              if (mounted) {
-                                // Close sheets and show snackbar
-                                Navigator.of(context).pop();
-                                Navigator.of(context).pop();
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          value == 1
-                                              ? "Đã thêm thu nhập!"
-                                              : "Đã thêm chi tiêu!",
-                                        ),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.green.shade600,
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: const EdgeInsets.all(16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: const Icon(Icons.check),
-                        );
-                      }
-                      return TextButton(
-                        onPressed: () => addNumber("${index + 1}"),
-                        child: Text(
-                          "${index + 1}",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // ===== Thanh kéo =====
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      );
-                    },
+                        const SizedBox(height: 16),
+
+                        // ===== Danh mục =====
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6B43FF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            category,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B43FF),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ===== Hiển thị số tiền =====
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF6B43FF).withOpacity(0.2),
+                              width: 2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _formatWithCommas(_amountRaw),
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "đ",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ===== Gợi ý số tiền =====
+                        if (getSuggestions().isNotEmpty)
+                          Container(
+                            height: 45,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: getSuggestions().length,
+                              itemBuilder: (context, index) {
+                                final amount = getSuggestions()[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: InkWell(
+                                    onTap: () => setModalState(
+                                      () => _amountRaw = amount.toString(),
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            const Color(
+                                              0xFF6B43FF,
+                                            ).withOpacity(0.1),
+                                            const Color(
+                                              0xFF6B43FF,
+                                            ).withOpacity(0.05),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(
+                                            0xFF6B43FF,
+                                          ).withOpacity(0.2),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _formatWithCommas(amount.toString()),
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF6B43FF),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                        // ===== Ghi chú =====
+                        TextField(
+                          controller: noteController,
+                          decoration: InputDecoration(
+                            labelText: "Ghi chú",
+                            labelStyle: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.edit_note,
+                              color: Colors.grey.shade600,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(fontSize: 20),
+                          onChanged: (val) => note = val,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ===== Bàn phím số =====
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // 1-2-3
+                              Row(
+                                children: List.generate(3, (i) {
+                                  return Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      "${i + 1}",
+                                      () => addNumber("${i + 1}"),
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 4-5-6
+                              Row(
+                                children: List.generate(3, (i) {
+                                  return Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      "${i + 4}",
+                                      () => addNumber("${i + 4}"),
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // 7-8-9
+                              Row(
+                                children: List.generate(3, (i) {
+                                  return Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      "${i + 7}",
+                                      () => addNumber("${i + 7}"),
+                                    ),
+                                  );
+                                }),
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Delete - 0 - OK
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      null,
+                                      deleteNumber,
+                                      icon: Icons.backspace_outlined,
+                                      color: Colors.red.shade400,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      "0",
+                                      () => addNumber("0"),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _buildKeyButton(
+                                      context,
+                                      null,
+                                      () {
+                                        if (_amountRaw.isNotEmpty &&
+                                            double.tryParse(_amountRaw) !=
+                                                null &&
+                                            double.parse(_amountRaw) > 0 &&
+                                            selectedCategory != null) {
+                                          final txn = TransactionModel(
+                                            id: DateTime.now()
+                                                .millisecondsSinceEpoch
+                                                .toString(),
+                                            note: note.isNotEmpty
+                                                ? note
+                                                : selectedCategory!,
+                                            amount: double.parse(_amountRaw),
+                                            isIncome: value == 1,
+                                            category: selectedCategory!,
+                                            date: DateTime.now(),
+                                            isSynced: false,
+                                          );
+
+                                          _saveTransaction(txn);
+
+                                          if (mounted) {
+                                            Navigator.of(
+                                              context,
+                                            ).pop(); // đóng sheet
+                                            Navigator.of(
+                                              context,
+                                            ).pop(); // đóng màn thêm giao dịch
+
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.check_circle,
+                                                      color: Colors.white,
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Text(
+                                                      value == 1
+                                                          ? "Đã thêm thu nhập!"
+                                                          : "Đã thêm chi tiêu!",
+                                                    ),
+                                                  ],
+                                                ),
+                                                backgroundColor:
+                                                    Colors.green.shade600,
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                margin: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                duration: const Duration(
+                                                  seconds: 2,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      icon: Icons.check_circle,
+                                      color: const Color(0xFF6B43FF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildToggleButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? color : Colors.white.withOpacity(0.7),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? color : Colors.white.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyButton(
+    BuildContext context,
+    String? text,
+    VoidCallback onPressed, {
+    IconData? icon,
+    Color? color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: color != null
+                  ? color.withOpacity(0.08)
+                  : (isDark
+                        ? Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withOpacity(0.5)
+                        : Colors.grey.shade100),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: color != null
+                    ? color.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: icon != null
+                  ? Icon(
+                      icon,
+                      size: 26,
+                      color:
+                          color ??
+                          (isDark
+                              ? Colors.white.withOpacity(0.85)
+                              : Colors.black87),
+                    )
+                  : Text(
+                      text!,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.85)
+                            : Colors.black87,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
