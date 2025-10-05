@@ -41,7 +41,7 @@ class _BottomSheetState extends State<bottomSheet> {
 
   final List<Map<String, dynamic>> chiOptions = [
     {"icon": Icons.shopping_cart, "label": "Mua sắm"},
-    {"icon": Icons.fastfood, "label": "Đồ ăn"},
+    {"icon": Icons.fastfood, "label": "Ăn uống"},
     {"icon": Icons.phone_android, "label": "Điện thoại"},
     {"icon": Icons.sports_esports, "label": "Giải trí"},
     {"icon": Icons.school, "label": "Giáo dục"},
@@ -53,14 +53,14 @@ class _BottomSheetState extends State<bottomSheet> {
     {"icon": Icons.water_drop_rounded, "label": "Tiền nước"},
     {"icon": Icons.checkroom, "label": "Quần áo"},
     {"icon": Icons.directions_car, "label": "Đi lại"},
-    {"icon": Icons.add, "label": "Khác"},
+    {"icon": Icons.add, "label": "Chi khác"},
   ];
 
   final List<Map<String, dynamic>> thuOptions = [
     {"icon": Icons.payments, "label": "Tiền lương"},
     {"icon": Icons.card_giftcard, "label": "Phụ cấp"},
     {"icon": Icons.star, "label": "Thưởng"},
-    {"icon": Icons.add, "label": "Khác"},
+    {"icon": Icons.add, "label": "Thu khác"},
   ];
 
   @override
@@ -341,7 +341,6 @@ class _BottomSheetState extends State<bottomSheet> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // ====== Các hàm xử lý ======
             void addNumber(String num) {
               setModalState(() => _amountRaw += num);
             }
@@ -359,8 +358,7 @@ class _BottomSheetState extends State<bottomSheet> {
               final currentValue = int.tryParse(_amountRaw);
               if (currentValue == null) return [];
 
-              // Gợi ý nhân 1000, 10000, 100000 nếu số nhỏ
-              if (currentValue < 100) {
+              if (currentValue <= 100) {
                 return [
                   currentValue * 1000,
                   currentValue * 10000,
@@ -370,7 +368,6 @@ class _BottomSheetState extends State<bottomSheet> {
               return [];
             }
 
-            // ====== Giao diện Bottom Sheet ======
             return Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
@@ -392,7 +389,6 @@ class _BottomSheetState extends State<bottomSheet> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ===== Thanh kéo =====
                         Container(
                           width: 40,
                           height: 4,
@@ -403,7 +399,6 @@ class _BottomSheetState extends State<bottomSheet> {
                         ),
                         const SizedBox(height: 16),
 
-                        // ===== Danh mục =====
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -424,7 +419,6 @@ class _BottomSheetState extends State<bottomSheet> {
                         ),
                         const SizedBox(height: 20),
 
-                        // ===== Hiển thị số tiền =====
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -443,7 +437,7 @@ class _BottomSheetState extends State<bottomSheet> {
                             children: [
                               Text(
                                 _formatWithCommas(_amountRaw),
-                                style: Theme.of(context).textTheme.bodyLarge!
+                                style: Theme.of(context).textTheme.bodySmall!
                                     .copyWith(
                                       fontSize: 36,
                                       fontWeight: FontWeight.bold,
@@ -467,7 +461,6 @@ class _BottomSheetState extends State<bottomSheet> {
                         ),
                         const SizedBox(height: 16),
 
-                        // ===== Gợi ý số tiền =====
                         if (getSuggestions().isNotEmpty)
                           Container(
                             height: 45,
@@ -522,7 +515,6 @@ class _BottomSheetState extends State<bottomSheet> {
                             ),
                           ),
 
-                        // ===== Ghi chú =====
                         TextField(
                           controller: noteController,
                           decoration: InputDecoration(
@@ -553,7 +545,6 @@ class _BottomSheetState extends State<bottomSheet> {
                         ),
                         const SizedBox(height: 20),
 
-                        // ===== Bàn phím số =====
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -569,7 +560,6 @@ class _BottomSheetState extends State<bottomSheet> {
                           ),
                           child: Column(
                             children: [
-                              // 1-2-3
                               Row(
                                 children: List.generate(3, (i) {
                                   return Expanded(
@@ -583,7 +573,6 @@ class _BottomSheetState extends State<bottomSheet> {
                               ),
                               const SizedBox(height: 12),
 
-                              // 4-5-6
                               Row(
                                 children: List.generate(3, (i) {
                                   return Expanded(
@@ -597,7 +586,6 @@ class _BottomSheetState extends State<bottomSheet> {
                               ),
                               const SizedBox(height: 12),
 
-                              // 7-8-9
                               Row(
                                 children: List.generate(3, (i) {
                                   return Expanded(
@@ -611,7 +599,6 @@ class _BottomSheetState extends State<bottomSheet> {
                               ),
                               const SizedBox(height: 12),
 
-                              // Delete - 0 - OK
                               Row(
                                 children: [
                                   Expanded(
@@ -657,12 +644,8 @@ class _BottomSheetState extends State<bottomSheet> {
                                           _saveTransaction(txn);
 
                                           if (mounted) {
-                                            Navigator.of(
-                                              context,
-                                            ).pop(); // đóng sheet
-                                            Navigator.of(
-                                              context,
-                                            ).pop(); // đóng màn thêm giao dịch
+                                            Navigator.of(context).pop();
+                                            Navigator.of(context).pop();
 
                                             ScaffoldMessenger.of(
                                               context,

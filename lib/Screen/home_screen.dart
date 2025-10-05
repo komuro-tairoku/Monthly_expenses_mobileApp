@@ -13,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   final NumberFormat _amountFormatter = NumberFormat('#,##0', 'en_US');
   String _formatAmount(double value) => _amountFormatter.format(value);
   String _formatDate(DateTime date) =>
@@ -23,6 +22,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Hive.isBoxOpen('transactions')
         ? Hive.box<TransactionModel>('transactions')
         : await Hive.openBox<TransactionModel>('transactions');
+  }
+
+  //biến lọc
+  String _filterType = 'all';
+  Future<bool> _confirmDelete(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Xác nhận xóa"),
+            content: const Text("Bạn có chắc muốn xóa giao dịch này không?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Hủy"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text("Xóa"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -41,18 +64,47 @@ class _HomeScreenState extends State<HomeScreen> {
           key: _scaffoldKey,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text("Ghi chú Thu Chi"),
+            title: const Text(
+              "Ghi chú Thu Chi",
+              style: TextStyle(fontSize: 30),
+            ),
             centerTitle: true,
             backgroundColor: Theme.of(context).primaryColor,
             elevation: 2,
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.filter_list_alt, size: 30),
+                onSelected: (value) {
+                  setState(() {
+                    _filterType = value;
+                  });
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'all', child: Text("Tất cả")),
+                  const PopupMenuItem(
+                    value: 'income',
+                    child: Text("Lọc Thu nhập"),
+                  ),
+                  const PopupMenuItem(
+                    value: 'expense',
+                    child: Text("Lọc Chi tiêu"),
+                  ),
+                ],
+              ),
+            ],
           ),
           body: ValueListenableBuilder(
             valueListenable: box.listenable(),
             builder: (context, Box<TransactionModel> box, _) {
-              final transactions = TransactionService.getSortedTransactions(
-                box,
-              );
-              final totals = TransactionService.calculateTotals(transactions);
+              final allTxns = TransactionService.getSortedTransactions(box);
+
+              final transactions = allTxns.where((txn) {
+                if (_filterType == 'income') return txn.isIncome;
+                if (_filterType == 'expense') return !txn.isIncome;
+                return true;
+              }).toList();
+
+              final totals = TransactionService.calculateTotals(allTxns);
               final totalIncome = totals['income']!;
               final totalExpense = totals['expense']!;
               final balance = totals['balance']!;
@@ -123,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: transactions.isEmpty
                         ? const Center(
                             child: Text(
-                              "Chưa có giao dịch nào",
+                              "Không có giao dịch nào",
                               style: TextStyle(fontSize: 20),
                             ),
                           )
@@ -151,6 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Colors.white,
                                   ),
                                 ),
+                                confirmDismiss: (_) => _confirmDelete(context),
                                 onDismissed: (_) async {
                                   await TransactionService.deleteTransaction(
                                     txn,
@@ -165,7 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
-                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 },
@@ -260,17 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text("Xóa"),
               onTap: () async {
                 Navigator.pop(ctx);
+                final confirmed = await _confirmDelete(context);
+                if (!confirmed) return;
                 await TransactionService.deleteTransaction(txn);
                 ScaffoldMessenger.of(_scaffoldKey.currentContext!).showSnackBar(
-                  SnackBar(
-                    content: const Text("Đã xóa giao dịch"),
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.all(12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
+                  const SnackBar(content: Text("Đã xóa giao dịch")),
                 );
               },
             ),
@@ -297,13 +343,11 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: noteController,
                 decoration: const InputDecoration(labelText: "Nội dung"),
-                style: Theme.of(context).textTheme.bodyMedium,
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Số tiền"),
-                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
