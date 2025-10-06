@@ -35,12 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text("Hủy"),
+                child: const Text("Hủy", style: TextStyle(color: Colors.black),),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text("Xóa"),
+                child: const Text("Xóa", style: TextStyle(color: Colors.black),),
               ),
             ],
           ),
