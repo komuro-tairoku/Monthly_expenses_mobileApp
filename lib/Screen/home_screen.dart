@@ -69,8 +69,18 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 30),
             ),
             centerTitle: true,
-            backgroundColor: Theme.of(context).primaryColor,
+            toolbarHeight: 80,
+            backgroundColor: Colors.transparent,
             elevation: 2,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6B43FF), Color(0xFF8B5FFF)],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                ),
+              ),
+            ),
             actions: [
               PopupMenuButton<String>(
                 icon: const Icon(Icons.filter_list_alt, size: 30),
