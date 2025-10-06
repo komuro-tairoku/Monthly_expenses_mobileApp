@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'bottomNavBar.dart';
-import 'signupScreen.dart';
-import 'ggSigninService.dart';
+import 'bottom_nav_bar.dart';
+import 'signup_screen.dart';
+import 'gg_signin_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -186,9 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       TextButton(
-                        onPressed: () {
-                          // TODO: Implement forgot password
-                        },
+                        onPressed: () {},
                         child: const Text("Forgot password?"),
                       ),
                     ],

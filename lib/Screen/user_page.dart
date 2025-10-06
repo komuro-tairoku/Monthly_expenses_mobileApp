@@ -9,8 +9,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'themeProvider.dart';
-import 'loginScreen.dart';
+import 'theme_provider.dart';
+import 'login_screen.dart';
 
 class UserPage extends ConsumerStatefulWidget {
   const UserPage({super.key});

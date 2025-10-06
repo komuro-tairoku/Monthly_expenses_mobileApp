@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'bottomNavBar.dart';
+import 'bottom_nav_bar.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -169,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const Text("Already have an account? "),
                       TextButton(
                         onPressed: () {
-                          Navigator.pop(context); 
+                          Navigator.pop(context);
                         },
                         child: const Text("Sign in"),
                       ),

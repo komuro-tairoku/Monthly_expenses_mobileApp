@@ -3,10 +3,10 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../db/transaction.dart';
-import '../Services/hiveHelper.dart';
+import '../Services/hive_helper.dart';
 
 class SyncService {
-  static var _subscription; // để Dart tự suy luận
+  static var _subscription;
   static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _firestoreListener;
 
@@ -15,14 +15,12 @@ class SyncService {
   static bool _isSyncing = false;
   static Timer? _debounceTimer;
 
-  /// Parse dữ liệu từ Firebase an toàn
   static TransactionModel? _parseTransaction(Map<String, dynamic> data) {
     try {
       final id = data['id']?.toString() ?? '';
       final category = data['category']?.toString() ?? '';
       final note = data['note']?.toString() ?? '';
 
-      // Parse amount
       double amount = 0.0;
       final amountData = data['amount'];
       if (amountData is num) {
@@ -31,13 +29,11 @@ class SyncService {
         amount = double.tryParse(amountData) ?? 0.0;
       }
 
-      // Parse date
       DateTime date = DateTime.now();
       final dateData = data['date'];
       if (dateData is Timestamp) {
         date = dateData.toDate();
       } else if (dateData is num) {
-        // assume milliseconds since epoch
         date = DateTime.fromMillisecondsSinceEpoch(dateData.toInt());
       } else if (dateData is String) {
         date = DateTime.tryParse(dateData) ?? DateTime.now();
@@ -67,14 +63,12 @@ class SyncService {
     }
   }
 
-  /// Khởi động SyncService
   static void start() {
     if (_isStarted) {
       return;
     }
     _isStarted = true;
 
-    // Listen connectivity changes
     _subscription = Connectivity().onConnectivityChanged.listen((result) {
       if (result != ConnectivityResult.none) {
         _debounceTimer?.cancel();
@@ -91,7 +85,6 @@ class SyncService {
     }
   }
 
-  /// Dừng service
   static void stop() {
     _subscription?.cancel();
     _firestoreListener?.cancel();
@@ -99,7 +92,6 @@ class SyncService {
     _isStarted = false;
   }
 
-  /// Đồng bộ các transactions chưa sync
   static Future<void> _syncUnsyncedTransactions() async {
     if (_isSyncing) {
       return;
@@ -145,12 +137,6 @@ class SyncService {
         }
 
         await batch.commit();
-
-        // NOTE: intentionally do NOT update the local `isSynced` flag here.
-        // Writing back to Hive immediately after the local write causes an
-        // extra box change notification which in turn can trigger duplicate
-        // UI rebuilds (observed as high rebuild counts). We rely on the
-        // realtime listener / pullFromFirebase to reconcile synced state.
       }
     } catch (e) {
     } finally {
@@ -184,8 +170,6 @@ class SyncService {
       final Map<String, TransactionModel> toPut = {};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        // doc.data() in the typed snapshot is non-nullable, but keep defensive
-        // parsing inside _parseTransaction.
         final txn = _parseTransaction(data);
         if (txn != null) {
           toPut[txn.id] = txn;
@@ -198,7 +182,6 @@ class SyncService {
     }
   }
 
-  /// Lắng nghe realtime updates
   static void _listenRealtime(String uid) async {
     try {
       final box = await HiveHelper.getTransactionBox();
@@ -235,7 +218,6 @@ class SyncService {
     } catch (e) {}
   }
 
-  /// Force sync ngay lập tức
   static Future<void> forceSyncNow() async {
     await _syncUnsyncedTransactions();
   }
