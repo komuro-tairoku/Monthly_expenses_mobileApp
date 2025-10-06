@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'bottom_nav_bar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'gg_signin_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,6 +14,74 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _agree = false;
+  bool _isLoading = false;
+  Future<void> _signInAsGuest() async {
+    setState(() => _isLoading = true);
+    try {
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      final user = userCredential.user;
+
+      if (user != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection("settings")
+              .doc(user.uid)
+              .set({'seenIntro': true}, SetOptions(merge: true))
+              .timeout(const Duration(seconds: 5));
+        } catch (e) {}
+      }
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Guest login failed: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _signUpWithGoogle() async {
+    setState(() => _isLoading = true);
+    final userCredential = await GoogleSignInService.signInWithGoogle();
+
+    if (userCredential != null && userCredential.user != null) {
+      final user = userCredential.user!;
+      await user.getIdToken(true);
+
+      try {
+        await FirebaseFirestore.instance
+            .collection("settings")
+            .doc(user.uid)
+            .set({'seenIntro': true}, SetOptions(merge: true))
+            .timeout(const Duration(seconds: 5));
+      } catch (e) {}
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google sign-up canceled or failed")),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +140,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // Password
                   TextField(
                     obscureText: true,
                     decoration: InputDecoration(
@@ -82,7 +152,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Checkbox đồng ý điều khoản
                   Row(
                     children: [
                       Checkbox(
@@ -115,7 +184,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 10),
 
-                  // Sign up button
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 15),
@@ -142,7 +210,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Social sign up
                   const Text("Sign up with", textAlign: TextAlign.center),
                   const SizedBox(height: 10),
                   Row(
@@ -153,16 +220,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         size: 40,
                         color: Color(0xFF1877F2),
                       ),
-                      Logo(Logos.google, size: 30,),
-                      Icon(
-                        Icons.person,
-                        size: 40,
+                      InkWell(
+                        onTap: _isLoading ? null : _signUpWithGoogle,
+                        child: _isLoading
+                            ? const CircularProgressIndicator()
+                            : Logo(Logos.google, size: 30),
+                      ),
+                      InkWell(
+                        onTap: _isLoading ? null : _signInAsGuest,
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.black87,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // Login link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

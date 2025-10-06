@@ -76,6 +76,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInAsGuest() async {
+    setState(() => _isLoading = true);
+    try {
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      final user = userCredential.user;
+
+      if (user != null) {
+        try {
+          await FirebaseFirestore.instance
+              .collection("settings")
+              .doc(user.uid)
+              .set({'seenIntro': true}, SetOptions(merge: true))
+              .timeout(const Duration(seconds: 5));
+        } catch (e) {}
+      }
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Guest login failed: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     final userCredential = await GoogleSignInService.signInWithGoogle();
@@ -223,9 +258,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: _isLoading ? null : _signInWithGoogle,
                         child: Logo(Logos.google, size: 30),
                       ),
-                      const Icon(Icons.person, size: 40),
+                      InkWell(
+                        onTap: _isLoading ? null : _signInAsGuest,
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

@@ -102,7 +102,13 @@ class _UserPageState extends ConsumerState<UserPage> {
               // Header
               Container(
                 height: 150,
-                color: Theme.of(context).primaryColor,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6B43FF), Color(0xFF8B5FFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Padding(

@@ -358,7 +358,7 @@ class _BottomSheetState extends State<bottomSheet> {
               final currentValue = int.tryParse(_amountRaw);
               if (currentValue == null) return [];
 
-              if (currentValue <= 100) {
+              if (currentValue <= 1000) {
                 return [
                   currentValue * 1000,
                   currentValue * 10000,
