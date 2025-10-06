@@ -13,8 +13,13 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _agree = false;
   bool _isLoading = false;
+
   Future<void> _signInAsGuest() async {
     setState(() => _isLoading = true);
     try {
@@ -22,13 +27,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final user = userCredential.user;
 
       if (user != null) {
-        try {
-          await FirebaseFirestore.instance
-              .collection("settings")
-              .doc(user.uid)
-              .set({'seenIntro': true}, SetOptions(merge: true))
-              .timeout(const Duration(seconds: 5));
-        } catch (e) {}
+        await FirebaseFirestore.instance
+            .collection("settings")
+            .doc(user.uid)
+            .set({'seenIntro': true}, SetOptions(merge: true));
       }
 
       if (mounted) {
@@ -44,9 +46,70 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ).showSnackBar(SnackBar(content: Text("Guest login failed: $e")));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signUpWithEmailPassword() async {
+    if (!_agree) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Vui lòng đồng ý với điều khoản người dùng."),
+        ),
+      );
+      return;
+    }
+
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email và mật khẩu không được bỏ trống.")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+
+      final user = credential.user;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'fullName': _nameController.text.trim(),
+          'email': user.email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await FirebaseFirestore.instance
+            .collection("settings")
+            .doc(user.uid)
+            .set({'seenIntro': true}, SetOptions(merge: true));
       }
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Home()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = "Sign up failed";
+      if (e.code == 'email-already-in-use') message = "Email already in use.";
+      if (e.code == 'weak-password') message = "Password too weak.";
+      if (e.code == 'invalid-email') message = "Invalid email format.";
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -62,9 +125,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         await FirebaseFirestore.instance
             .collection("settings")
             .doc(user.uid)
-            .set({'seenIntro': true}, SetOptions(merge: true))
-            .timeout(const Duration(seconds: 5));
-      } catch (e) {}
+            .set({'seenIntro': true}, SetOptions(merge: true));
+      } catch (_) {}
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -81,6 +143,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -118,29 +188,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // Full name
                   TextField(
+                    controller: _nameController,
                     decoration: InputDecoration(
                       labelText: "Full Name",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    style: const TextStyle(color: Colors.black),
                   ),
                   const SizedBox(height: 15),
 
+                  // Email
                   TextField(
+                    controller: _emailController,
                     decoration: InputDecoration(
                       labelText: "Email",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    style: const TextStyle(color: Colors.black),
                   ),
                   const SizedBox(height: 15),
 
+                  // Password
                   TextField(
+                    controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
                       labelText: "Password",
@@ -148,10 +222,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    style: const TextStyle(color: Colors.black),
                   ),
+
                   const SizedBox(height: 10),
 
+                  // Checkbox
                   Row(
                     children: [
                       Checkbox(
@@ -166,12 +241,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         child: RichText(
                           text: const TextSpan(
                             text: "I agree to the processing of ",
-                            style: TextStyle(color: Colors.black),
+                            style: TextStyle(color: Colors.black, fontSize: 15),
                             children: [
                               TextSpan(
                                 text: "Personal data",
                                 style: TextStyle(
-                                  color: Colors.blue,
+                                  color: Color(0xFF6B43FF),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -184,6 +259,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 10),
 
+                  // 🔹 Nút Sign up
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 15),
@@ -192,26 +268,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       backgroundColor: Colors.blue,
                     ),
-                    onPressed: _agree
-                        ? () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Home(),
-                              ),
-                            );
-                          }
-                        : null,
-                    child: const Text(
-                      "Sign up",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                    onPressed: _isLoading ? null : _signUpWithEmailPassword,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Sign up",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                   ),
 
                   const SizedBox(height: 20),
 
                   const Text("Sign up with", textAlign: TextAlign.center),
                   const SizedBox(height: 10),
+
+                  // Mạng xã hội + Guest
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -222,20 +293,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       InkWell(
                         onTap: _isLoading ? null : _signUpWithGoogle,
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : Logo(Logos.google, size: 30),
+                        child: Logo(Logos.google, size: 30),
                       ),
                       InkWell(
                         onTap: _isLoading ? null : _signInAsGuest,
-                        child: const Icon(
-                          Icons.person,
-                          size: 40,
-                          color: Colors.black87,
-                        ),
+                        child: const Icon(Icons.person, size: 40),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
 
                   Row(
@@ -243,10 +309,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     children: [
                       const Text("Already have an account? "),
                       TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Sign in"),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Sign in",
+                          style: TextStyle(color: Color(0xFF6B43FF)),
+                        ),
                       ),
                     ],
                   ),

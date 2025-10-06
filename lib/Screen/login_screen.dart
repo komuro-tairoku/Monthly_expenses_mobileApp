@@ -50,13 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       String message = "Login failed";
-      if (e.code == 'user-not-found') message = "No user found for that email.";
-      if (e.code == 'wrong-password') message = "Wrong password provided.";
+      if (e.code == 'user-not-found') message = "Không tìm thấy tài khoản.";
+      if (e.code == 'wrong-password') message = "Sai mật khậu.";
       if (e.code == 'user-disabled')
         message = "This account has been disabled.";
-      if (e.code == 'invalid-email') message = "Invalid email format.";
-      if (e.code == 'invalid-credential')
-        message = "Invalid email or password.";
+      if (e.code == 'invalid-email') message = "Sai định dạng Email.";
+      if (e.code == 'invalid-credential') message = "Sai Email hoặc mật khẩu.";
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -142,6 +141,140 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final TextEditingController emailController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text("Reset Password"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Enter your email to receive a password reset link",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+
+                if (email.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please enter your email")),
+                  );
+                  return;
+                }
+
+                try {
+                  try {
+                    // 🔍 Kiểm tra email có tồn tại không
+                    final signInMethods = await FirebaseAuth.instance
+                        .fetchSignInMethodsForEmail(email);
+                    if (signInMethods.isEmpty) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Không tìm thấy tài khoản với email này",
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      return; // Dừng lại, không gửi mail reset
+                    }
+
+                    // ✅ Nếu tồn tại, gửi mail reset
+                    await FirebaseAuth.instance.sendPasswordResetEmail(
+                      email: email,
+                    );
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Link đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra email.",
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    String message = "Không thể gửi mail reset";
+                    if (e.code == 'invalid-email')
+                      message = "Sai định dạng email.";
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(message),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Reset link sent! Check your email"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } on FirebaseAuthException catch (e) {
+                  String message = "Không thể gửi mail reset";
+
+                  if (e.code == 'user-not-found') {
+                    message = "Không tìm thấy tài khoản với mail này";
+                  } else if (e.code == 'invalid-email') {
+                    message = "Sai định dạng mail";
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text("Send"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -217,12 +350,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             onChanged: (value) =>
                                 setState(() => _rememberMe = value ?? false),
                           ),
-                          const Text("Remember me"),
+                          const Text(
+                            "Remember me",
+                            style: TextStyle(color: Color(0xFF6B43FF)),
+                          ),
                         ],
                       ),
                       TextButton(
-                        onPressed: () {},
-                        child: const Text("Forgot password?"),
+                        onPressed: _showForgotPasswordDialog,
+                        child: const Text(
+                          "Forgot password?",
+                          style: TextStyle(color: Color(0xFF6B43FF)),
+                        ),
                       ),
                     ],
                   ),
@@ -263,7 +402,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Icon(
                           Icons.person,
                           size: 40,
-                          color: Colors.black87,
+                          color: Color(0xFF6B43FF),
                         ),
                       ),
                     ],
@@ -281,7 +420,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (_) => const SignUpScreen(),
                           ),
                         ),
-                        child: const Text("Sign up"),
+                        child: const Text(
+                          "Sign up",
+                          style: TextStyle(color: Color(0xFF6B43FF)),
+                        ),
                       ),
                     ],
                   ),
