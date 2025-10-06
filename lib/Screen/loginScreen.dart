@@ -218,14 +218,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Icon(
                         Icons.facebook,
-                        size: 30,
+                        size: 40,
                         color: Color(0xFF1877F2),
                       ),
                       InkWell(
                         onTap: _isLoading ? null : _signInWithGoogle,
                         child: Logo(Logos.google, size: 30),
                       ),
-                      const Icon(Icons.apple, size: 30),
+                      const Icon(Icons.person, size: 40),
                     ],
                   ),
                   const SizedBox(height: 20),

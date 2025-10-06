@@ -153,8 +153,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         size: 40,
                         color: Color(0xFF1877F2),
                       ),
-                      Logo(Logos.google),
-                      Logo(Logos.apple),
+                      Logo(Logos.google, size: 30,),
+                      Icon(
+                        Icons.person,
+                        size: 40,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
