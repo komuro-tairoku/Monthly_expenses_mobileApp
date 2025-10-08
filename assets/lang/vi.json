@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "Quản lý thu chi"
+  },
+  "home": {
+    "title": "Ghi chú Thu Chi",
+    "balance": "Tổng số dư",
+    "income": "Thu nhập",
+    "expense": "Chi tiêu",
+    "no_transactions": "Không có giao dịch nào",
+    "all": "Tất cả",
+    "filter_income": "Lọc thu nhập",
+    "filter_espense": "Lọc chi tiêu",
+    "edit": "Sửa",
+    "del": "Xóa",
+    "del_success": "Đã xóa giao dịch",
+    "edit_transaction": "Sửa giao dịch",
+    "content": "Nội dung",
+    "money": "Số tiền",
+    "confirm_delete": "Xác nhận xóa",
+    "are_you_sure": "Bạn có chắc muốn xóa giao dịch này không?",
+    "cancel": "Hủy",
+    "save": "Lưu"
+  },
+  "statement": {
+    "title": "Báo cáo",
+    "filter_day": "Theo ngày",
+    "filter_week": "Theo tuần",
+    "filter_month": "Theo tháng",
+    "categories": {
+      "shopping": "Mua sắm",
+      "food": "Ăn uống",
+      "phone": "Điện thoại",
+      "entertainment": "Giải trí",
+      "education": "Giáo dục",
+      "beauty": "Làm đẹp",
+      "sports": "Thể thao",
+      "social": "Xã hội",
+      "housing": "Nhà ở",
+      "electricity": "Tiền điện",
+      "water": "Tiền nước",
+      "clothes": "Quần áo",
+      "transport": "Đi lại",
+      "other_expense": "Chi khác",
+      "salary": "Tiền lương",
+      "allowance": "Phụ cấp",
+      "bonus": "Thưởng",
+      "other_income": "Thu khác"
+    },
+    "no_data_range": "Không có giao dịch trong khoảng thời gian này",
+    "no_data": "Không có giao dịch khả dụng để hiển thị",
+    "label_day": "Ngày: {d}/{m}/{y}",
+    "label_week": "Tuần: {ds}/{ms} - {de}/{me}",
+    "label_month": "Tháng: {m}/{y}"
+  },
+  "budget": {
+    "title": "Ngân sách"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "statement": "Báo cáo",
+    "budget": "Ngân sách"
+  },
+  "common": {
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "confirm_delete": "Xác nhận xóa",
+    "are_you_sure": "Bạn có chắc muốn xóa giao dịch này không?",
+    "logout": "Đăng xuất",
+    "security": "Bảo mật",
+    "notification": "Thông báo",
+    "private": "Riêng tư"
+  },
+  "sheet": {
+    "income": "Tiền thu",
+    "expense": "Tiền chi",
+    "add_transaction": "Thêm thu nhập",
+    "shopping": "Mua sắm",
+    "food": "Ăn uống",
+    "phone": "Điện thoại",
+    "entertainment": "Giải trí",
+    "education": "Giáo dục",
+    "beauty": "Làm đẹp",
+    "sports": "Thể thao",
+    "social": "Xã hội",
+    "housing": "Nhà ở",
+    "electricity": "Tiền điện",
+    "water": "Tiền nước",
+    "clothes": "Quần áo",
+    "transport": "Đi lại",
+    "other_expense": "Chi khác",
+    "salary": "Lương",
+    "allowance": "Phụ cấp",
+    "bonus": "Thưởng",
+    "other_income": "Thu khác",
+    "note": "Ghi chú"
+  }
+}

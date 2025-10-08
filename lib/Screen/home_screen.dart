@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../db/transaction.dart';
 import '../Services/transaction_service.dart';
+import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final NumberFormat _amountFormatter = NumberFormat('#,##0', 'en_US');
   String _formatAmount(double value) => _amountFormatter.format(value);
   String _formatDate(DateTime date) =>
@@ -24,23 +24,29 @@ class _HomeScreenState extends State<HomeScreen> {
         : await Hive.openBox<TransactionModel>('transactions');
   }
 
-  //biến lọc
   String _filterType = 'all';
+
   Future<bool> _confirmDelete(BuildContext context) async {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text("Xác nhận xóa"),
-            content: const Text("Bạn có chắc muốn xóa giao dịch này không?"),
+            title: Text(AppLocalizations.of(ctx).t('home.confirm_delete')),
+            content: Text(AppLocalizations.of(ctx).t('home.are_you_sure')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text("Hủy", style: TextStyle(color: Colors.black),),
+                child: Text(
+                  AppLocalizations.of(ctx).t('home.cancel'),
+                  style: const TextStyle(color: Colors.black),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text("Xóa", style: TextStyle(color: Colors.black),),
+                child: Text(
+                  AppLocalizations.of(ctx).t('home.del'),
+                  style: const TextStyle(color: Colors.black),
+                ),
               ),
             ],
           ),
@@ -61,12 +67,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final box = snapshot.data!;
         return Scaffold(
-          key: _scaffoldKey,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text(
-              "Ghi chú Thu Chi",
-              style: TextStyle(fontSize: 30),
+            title: Text(
+              AppLocalizations.of(context).t('home.title'),
+              style: const TextStyle(fontSize: 30),
             ),
             centerTitle: true,
             toolbarHeight: 80,
@@ -90,14 +95,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   });
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'all', child: Text("Tất cả")),
-                  const PopupMenuItem(
-                    value: 'income',
-                    child: Text("Lọc Thu nhập"),
+                  PopupMenuItem(
+                    value: 'all',
+                    child: Text(AppLocalizations.of(context).t('home.all')),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
+                    value: 'income',
+                    child: Text(
+                      AppLocalizations.of(context).t("home.filter_income"),
+                    ),
+                  ),
+                  PopupMenuItem(
                     value: 'expense',
-                    child: Text("Lọc Chi tiêu"),
+                    child: Text(
+                      AppLocalizations.of(context).t("home.filter_expense"),
+                    ),
                   ),
                 ],
               ),
@@ -141,9 +153,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Column(
                       children: [
-                        const Text(
-                          'Tổng số dư',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        Text(
+                          AppLocalizations.of(context).t('home.balance'),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -160,7 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             _buildStatItem(
                               icon: Icons.arrow_downward,
-                              label: 'Thu nhập',
+                              label: AppLocalizations.of(
+                                context,
+                              ).t('home.income'),
                               amount: totalIncome,
                               color: Colors.greenAccent,
                             ),
@@ -171,7 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             _buildStatItem(
                               icon: Icons.arrow_upward,
-                              label: 'Chi tiêu',
+                              label: AppLocalizations.of(
+                                context,
+                              ).t('home.expense'),
                               amount: totalExpense,
                               color: Colors.redAccent,
                             ),
@@ -183,10 +202,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   Expanded(
                     child: transactions.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                              "Không có giao dịch nào",
-                              style: TextStyle(fontSize: 20),
+                              AppLocalizations.of(
+                                context,
+                              ).t('home.no_transactions'),
+                              style: const TextStyle(fontSize: 20),
                             ),
                           )
                         : ListView.builder(
@@ -215,14 +236,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 confirmDismiss: (_) => _confirmDelete(context),
                                 onDismissed: (_) async {
+                                  // Lưu references trước khi thực hiện async operation
+                                  final scaffoldMessenger =
+                                      ScaffoldMessenger.of(context);
+                                  final localizations = AppLocalizations.of(
+                                    context,
+                                  );
+
                                   await TransactionService.deleteTransaction(
                                     txn,
                                   );
-                                  ScaffoldMessenger.of(
-                                    _scaffoldKey.currentContext!,
-                                  ).showSnackBar(
+
+                                  scaffoldMessenger.showSnackBar(
                                     SnackBar(
-                                      content: const Text("Đã xóa giao dịch"),
+                                      content: Text(
+                                        localizations.t("home.del_success"),
+                                      ),
                                       behavior: SnackBarBehavior.floating,
                                       margin: const EdgeInsets.all(12),
                                       shape: RoundedRectangleBorder(
@@ -248,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     title: Text(txn.note),
                                     subtitle: Text(
-                                      "${txn.isIncome ? "Thu nhập" : "Chi tiêu"} • ${_formatDate(txn.date)}",
+                                      "${txn.isIncome ? AppLocalizations.of(context).t("home.income") : AppLocalizations.of(context).t("home.expense")} • ${_formatDate(txn.date)}",
                                     ),
                                     trailing: Text(
                                       "${_formatAmount(txn.amount)} đ",
@@ -311,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit, color: Colors.blue),
-              title: const Text("Sửa"),
+              title: Text(AppLocalizations.of(context).t("home.edit")),
               onTap: () {
                 Navigator.pop(ctx);
                 _showEditDialog(txn);
@@ -319,14 +348,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text("Xóa"),
+              title: Text(AppLocalizations.of(context).t("home.del")),
               onTap: () async {
                 Navigator.pop(ctx);
                 final confirmed = await _confirmDelete(context);
                 if (!confirmed) return;
+
+                // Lưu references trước khi thực hiện async operation
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                final localizations = AppLocalizations.of(context);
+
                 await TransactionService.deleteTransaction(txn);
-                ScaffoldMessenger.of(_scaffoldKey.currentContext!).showSnackBar(
-                  const SnackBar(content: Text("Đã xóa giao dịch")),
+
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text(localizations.t("home.del_success"))),
                 );
               },
             ),
@@ -343,28 +378,32 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     showDialog(
-      context: _scaffoldKey.currentContext!,
+      context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Sửa giao dịch"),
+          title: Text(AppLocalizations.of(context).t("home.edit_transaction")),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: noteController,
-                decoration: const InputDecoration(labelText: "Nội dung"),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).t("home.content"),
+                ),
               ),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Số tiền"),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context).t("home.money"),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Hủy"),
+              child: Text(AppLocalizations.of(context).t("home.cancel")),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -380,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text("Lưu"),
+              child: Text(AppLocalizations.of(context).t("home.save")),
             ),
           ],
         );

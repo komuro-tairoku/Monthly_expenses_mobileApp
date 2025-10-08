@@ -1,0 +1,80 @@
+{
+  "app": {
+    "title": "Expense manager"
+  },
+  "home": {
+    "title": "Income & expense notes",
+    "balance": "Total balance",
+    "income": "Income",
+    "expense": "Expense",
+    "no_transactions": "No transactions",
+    "all": "All",
+    "filter_income": "Filter income",
+    "filter_espense": "Filter espense",
+    "edit": "Edit",
+    "del": "Delete",
+    "del_success": "Delete Success",
+    "edit_transaction": "Edit",
+    "content": "Content",
+    "money": "Money",
+    "confirm_delete": "Confirm delete",
+    "are_you_sure": "Are you sure you want to delete this transaction?",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "statement": {
+    "title": "Statement",
+    "filter_day": "By day",
+    "filter_week": "By week",
+    "filter_month": "By month",
+    "no_data_range": "No transactions in this period",
+    "no_data": "No data available to display",
+    "label_day": "Day: {d}/{m}/{y}",
+    "label_week": "Week: {ds}/{ms} - {de}/{me}",
+    "label_month": "Month: {m}/{y}"
+  },
+  "budget": {
+    "title": "Budget"
+  },
+  "nav": {
+    "home": "Home",
+    "statement": "Statement",
+    "budget": "Budget"
+  },
+  "common": {
+    "delete": "Delete",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm_delete": "Confirm delete",
+    "are_you_sure": "Are you sure you want to delete this transaction?",
+    "logout": "Logout",
+    "security": "Security",
+    "notification": "Notification",
+    "private": "Private"
+  },
+  "sheet": {
+    "income": "Income",
+    "expense": "Expense",
+    "add_transaction": "Add Transaction",
+    "shopping": "Shopping",
+    "food": "Food",
+    "phone": "Phone",
+    "entertainment": "Entertainment",
+    "education": "Education",
+    "beauty": "Beauty",
+    "sports": "Sports",
+    "social": "Social",
+    "housing": "Housing",
+    "electricity": "Electricity Bill",
+    "water": "Water Bill",
+    "clothes": "Clothes",
+    "transport": "Travel",
+    "other_expense": "Other Expenses",
+    "salary": "Salary",
+    "allowance": "Allowance",
+    "bonus": "Bonus",
+    "other_income": "Other Income",
+    "note": "Note"
+  }
+}

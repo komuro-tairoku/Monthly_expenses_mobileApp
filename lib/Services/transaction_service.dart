@@ -4,11 +4,17 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../db/transaction.dart';
 
 class TransactionService {
+  /// 🗑️ Xóa giao dịch
   static Future<void> deleteTransaction(TransactionModel txn) async {
     final user = FirebaseAuth.instance.currentUser;
     await txn.delete();
 
-    if (txn.isSynced && user != null) {
+    if (user == null || user.isAnonymous) {
+      print("🟡 Guest mode: không xoá trên Firebase");
+      return;
+    }
+
+    if (txn.isSynced) {
       try {
         await FirebaseFirestore.instance
             .collection('transactions')
@@ -16,9 +22,11 @@ class TransactionService {
             .collection('items')
             .doc(txn.id)
             .delete();
+        print("✅ Đã xoá giao dịch trên Firebase");
       } catch (e) {
         txn.isSynced = false;
         await txn.save();
+        print("❌ Lỗi khi xoá Firebase: $e");
       }
     }
   }
@@ -34,7 +42,12 @@ class TransactionService {
     txn.amount = newAmount;
     await txn.save();
 
-    if (txn.isSynced && user != null) {
+    if (user == null || user.isAnonymous) {
+      print("🟡 Guest mode: không cập nhật Firebase");
+      return;
+    }
+
+    if (txn.isSynced) {
       try {
         final ref = FirebaseFirestore.instance
             .collection('transactions')
@@ -47,8 +60,9 @@ class TransactionService {
           'label': newNote,
           'amount': newAmount,
         });
+        print("✅ Cập nhật Firebase thành công");
       } catch (e) {
-        // ignore
+        print("❌ Lỗi cập nhật Firebase: $e");
       }
     }
   }

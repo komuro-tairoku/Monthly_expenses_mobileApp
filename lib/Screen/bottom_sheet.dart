@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../db/transaction.dart';
 import '../Services/hive_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class bottomSheet extends StatefulWidget {
   const bottomSheet({super.key});
@@ -24,7 +25,6 @@ class _BottomSheetState extends State<bottomSheet> {
 
   String _formatWithCommas(String digits) {
     if (digits.isEmpty) return '0';
-    // remove any non-digit just in case
     final s = digits.replaceAll(RegExp(r'[^0-9]'), '');
     if (s.isEmpty) return '0';
     final buffer = StringBuffer();
@@ -40,27 +40,27 @@ class _BottomSheetState extends State<bottomSheet> {
   }
 
   final List<Map<String, dynamic>> chiOptions = [
-    {"icon": Icons.shopping_cart, "label": "Mua sắm"},
-    {"icon": Icons.fastfood, "label": "Ăn uống"},
-    {"icon": Icons.phone_android, "label": "Điện thoại"},
-    {"icon": Icons.sports_esports, "label": "Giải trí"},
-    {"icon": Icons.school, "label": "Giáo dục"},
-    {"icon": Icons.brush, "label": "Sắc đẹp"},
-    {"icon": Icons.sports_soccer, "label": "Thể thao"},
-    {"icon": Icons.people, "label": "Xã hội"},
-    {"icon": Icons.home, "label": "Nhà ở"},
-    {"icon": Icons.electric_bolt_outlined, "label": "Tiền điện"},
-    {"icon": Icons.water_drop_rounded, "label": "Tiền nước"},
-    {"icon": Icons.checkroom, "label": "Quần áo"},
-    {"icon": Icons.directions_car, "label": "Đi lại"},
-    {"icon": Icons.add, "label": "Chi khác"},
+    {"icon": Icons.shopping_cart, "labelKey": "sheet.shopping"},
+    {"icon": Icons.fastfood, "labelKey": "sheet.food"},
+    {"icon": Icons.phone_android, "labelKey": "sheet.phone"},
+    {"icon": Icons.sports_esports, "labelKey": "sheet.entertainment"},
+    {"icon": Icons.school, "labelKey": "sheet.education"},
+    {"icon": Icons.brush, "labelKey": "sheet.beauty"},
+    {"icon": Icons.sports_soccer, "labelKey": "sheet.sports"},
+    {"icon": Icons.people, "labelKey": "sheet.social"},
+    {"icon": Icons.home, "labelKey": "sheet.housing"},
+    {"icon": Icons.electric_bolt_outlined, "labelKey": "sheet.electricity"},
+    {"icon": Icons.water_drop_rounded, "labelKey": "sheet.water"},
+    {"icon": Icons.checkroom, "labelKey": "sheet.clothes"},
+    {"icon": Icons.directions_car, "labelKey": "sheet.transport"},
+    {"icon": Icons.add, "labelKey": "sheet.other_expense"},
   ];
 
   final List<Map<String, dynamic>> thuOptions = [
-    {"icon": Icons.payments, "label": "Tiền lương"},
-    {"icon": Icons.card_giftcard, "label": "Phụ cấp"},
-    {"icon": Icons.star, "label": "Thưởng"},
-    {"icon": Icons.add, "label": "Thu khác"},
+    {"icon": Icons.payments, "labelKey": "sheet.salary"},
+    {"icon": Icons.card_giftcard, "labelKey": "sheet.allowance"},
+    {"icon": Icons.star, "labelKey": "sheet.bonus"},
+    {"icon": Icons.add, "labelKey": "sheet.other_income"},
   ];
 
   @override
@@ -87,17 +87,24 @@ class _BottomSheetState extends State<bottomSheet> {
 
   Future<void> _syncUnsyncedTransactions() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+
+    // 🔹 Kiểm tra guest mode
+    if (user == null || user.isAnonymous) {
+      print("🟡 Guest mode: không sync Firebase");
+      return;
+    }
 
     try {
       final connectivityResults = await Connectivity().checkConnectivity();
       if (connectivityResults.isEmpty ||
-          connectivityResults.first == ConnectivityResult.none)
+          connectivityResults.first == ConnectivityResult.none) {
         return;
+      }
 
       final box = await HiveHelper.getTransactionBox();
       final unsynced = box.values.where((t) => !t.isSynced).toList();
       if (unsynced.isEmpty) return;
+
       Future(() async {
         try {
           final batch = FirebaseFirestore.instance.batch();
@@ -119,24 +126,39 @@ class _BottomSheetState extends State<bottomSheet> {
             }, SetOptions(merge: true));
           }
           await batch.commit();
-        } catch (_) {}
+
+          for (var txn in unsynced) {
+            txn.isSynced = true;
+            await txn.save();
+          }
+          print("✅ Đã sync ${unsynced.length} giao dịch");
+        } catch (e) {
+          print("❌ Lỗi khi sync: $e");
+        }
       });
-    } catch (e) {}
+    } catch (e) {
+      print("❌ Lỗi trong _syncUnsyncedTransactions: $e");
+    }
   }
 
   Future<void> _saveTransaction(TransactionModel txn) async {
     final box = await HiveHelper.getTransactionBox();
     box.put(txn.id, txn);
 
-    Future(() async {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+    final user = FirebaseAuth.instance.currentUser;
 
+    if (user == null || user.isAnonymous) {
+      print("🟡 Guest mode: chỉ lưu local, không sync Firebase");
+      return;
+    }
+
+    Future(() async {
       try {
         final connectivityResults = await Connectivity().checkConnectivity();
         if (connectivityResults.isEmpty ||
-            connectivityResults.first == ConnectivityResult.none)
+            connectivityResults.first == ConnectivityResult.none) {
           return;
+        }
 
         await FirebaseFirestore.instance
             .collection('transactions')
@@ -152,7 +174,13 @@ class _BottomSheetState extends State<bottomSheet> {
               'date': Timestamp.fromDate(txn.date),
               'isIncome': txn.isIncome,
             }, SetOptions(merge: true));
-      } catch (_) {}
+
+        txn.isSynced = true;
+        await txn.save();
+        print("✅ Đã sync giao dịch lên Firebase");
+      } catch (e) {
+        print("❌ Lỗi khi sync Firebase: $e");
+      }
     });
   }
 
@@ -182,9 +210,11 @@ class _BottomSheetState extends State<bottomSheet> {
                     top: 50,
                     child: Column(
                       children: [
-                        const Text(
-                          'Thêm Giao Dịch',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(
+                            context,
+                          ).t("sheet.add_transaction"),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
@@ -210,7 +240,9 @@ class _BottomSheetState extends State<bottomSheet> {
                             children: [
                               _buildToggleButton(
                                 context,
-                                label: "Tiền Chi",
+                                label: AppLocalizations.of(
+                                  context,
+                                ).t('sheet.expense'),
                                 icon: Icons.arrow_upward_rounded,
                                 isSelected: value == 0,
                                 color: Colors.red.shade400,
@@ -226,7 +258,9 @@ class _BottomSheetState extends State<bottomSheet> {
                               const SizedBox(width: 8),
                               _buildToggleButton(
                                 context,
-                                label: "Tiền Thu",
+                                label: AppLocalizations.of(
+                                  context,
+                                ).t('sheet.income'),
                                 icon: Icons.arrow_downward_rounded,
                                 isSelected: value == 1,
                                 color: Colors.green.shade400,
@@ -296,9 +330,12 @@ class _BottomSheetState extends State<bottomSheet> {
       itemCount: options.length,
       itemBuilder: (context, index) {
         final option = options[index];
+        final String label = AppLocalizations.of(
+          context,
+        ).t(option['labelKey'] ?? '');
         return GestureDetector(
           onTap: () {
-            _showAmountSheet(option['label']);
+            _showAmountSheet(label);
           },
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -314,7 +351,7 @@ class _BottomSheetState extends State<bottomSheet> {
               ),
               const SizedBox(height: 8),
               Text(
-                option['label'],
+                label,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(fontSize: 16),
@@ -518,7 +555,9 @@ class _BottomSheetState extends State<bottomSheet> {
                         TextField(
                           controller: noteController,
                           decoration: InputDecoration(
-                            labelText: "Ghi chú",
+                            labelText: AppLocalizations.of(
+                              context,
+                            ).t('sheet.note'),
                             labelStyle: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 20,

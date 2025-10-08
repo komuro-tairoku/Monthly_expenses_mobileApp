@@ -14,6 +14,9 @@ import 'Screen/bottom_nav_bar.dart';
 import 'Screen/theme.dart';
 import 'Screen/theme_provider.dart';
 import 'Services/hive_helper.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/locale_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,15 +98,26 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
     final appThemeState = ref.watch(appThemeStateNotifier);
+    final appLocaleState = ref.watch(appLocaleStateNotifier);
 
     Widget app = Builder(
       builder: (context) {
         final media = MediaQuery.of(context);
         final maxTextScale = media.textScaleFactor.clamp(1.0, 1.0);
 
-        if (_loading || !appThemeState.isInitialized) {
+        if (_loading ||
+            !appThemeState.isInitialized ||
+            !appLocaleState.isInitialized) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            locale: appLocaleState.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('vi'), Locale('es'), Locale('en')],
             home: Scaffold(
               body: Center(
                 child: MediaQuery(
@@ -139,7 +153,15 @@ class _MyAppState extends ConsumerState<MyApp> {
 
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'Quản lý thu chi',
+          locale: appLocaleState.locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('vi'), Locale('es'), Locale('en')],
+          onGenerateTitle: (ctx) => AppLocalizations.of(ctx).t('app.title'),
           theme: appTheme.lightTheme,
           darkTheme: appTheme.darkTheme,
           themeMode: appThemeState.isDarkModeEnable

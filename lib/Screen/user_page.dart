@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:monthly_expenses_mobile_app/l10n/app_localizations.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'theme_provider.dart';
 import 'login_screen.dart';
+import '../l10n/locale_provider.dart';
 
 class UserPage extends ConsumerStatefulWidget {
   const UserPage({super.key});
@@ -70,7 +72,9 @@ class _UserPageState extends ConsumerState<UserPage> {
       setState(() {
         _avatarImage = savedImage;
       });
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
   }
 
   Future<void> _signOut(BuildContext context) async {
@@ -86,12 +90,16 @@ class _UserPageState extends ConsumerState<UserPage> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Đăng xuất thành công")));
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Sign out error: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final localeState = ref.watch(appLocaleStateNotifier);
+    final localeNotifier = ref.read(appLocaleStateNotifier.notifier);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -125,30 +133,37 @@ class _UserPageState extends ConsumerState<UserPage> {
                             appThemeStateNotifier.notifier,
                           );
 
-                          return AnimatedToggleSwitch<bool>.dual(
-                            current: appThemeState.isDarkModeEnable,
-                            first: false,
-                            second: true,
-                            spacing: 6,
-                            borderWidth: 2.0,
-                            height: 30,
-                            onChanged: (b) => themeNotifier.toggleTheme(b),
-                            iconBuilder: (value) => value
-                                ? const Icon(Icons.dark_mode, size: 20)
-                                : const Icon(Icons.light_mode, size: 20),
-                            styleBuilder: (b) => ToggleStyle(
-                              backgroundColor: Colors.grey[300],
-                              indicatorColor: b ? Colors.black : Colors.yellow,
-                              borderColor: Colors.transparent,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  spreadRadius: 0.5,
-                                  blurRadius: 1,
-                                  offset: Offset(0, 1),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              AnimatedToggleSwitch<bool>.dual(
+                                current: appThemeState.isDarkModeEnable,
+                                first: false,
+                                second: true,
+                                spacing: 6,
+                                borderWidth: 2.0,
+                                height: 30,
+                                onChanged: (b) => themeNotifier.toggleTheme(b),
+                                iconBuilder: (value) => value
+                                    ? const Icon(Icons.dark_mode, size: 20)
+                                    : const Icon(Icons.light_mode, size: 20),
+                                styleBuilder: (b) => ToggleStyle(
+                                  backgroundColor: Colors.grey[300],
+                                  indicatorColor: b
+                                      ? Colors.black
+                                      : Colors.yellow,
+                                  borderColor: Colors.transparent,
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      spreadRadius: 0.5,
+                                      blurRadius: 1,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -162,14 +177,12 @@ class _UserPageState extends ConsumerState<UserPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 100),
-
                     Text(
                       user?.displayName ?? user?.email ?? "User",
                       style: Theme.of(
                         context,
                       ).textTheme.bodyMedium!.copyWith(fontSize: 25),
                     ),
-
                     Container(
                       margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(16),
@@ -190,10 +203,52 @@ class _UserPageState extends ConsumerState<UserPage> {
                           ),
                           const SizedBox(height: 21),
                           _buildItem(context, Icons.person, "Edit profile"),
-                          _buildItem(context, Icons.security, "Bảo mật"),
-                          _buildItem(context, Icons.notifications, "Thông báo"),
-                          _buildItem(context, Icons.lock, "Riêng tư"),
+                          _buildItem(
+                            context,
+                            Icons.security,
+                            AppLocalizations.of(context).t('common.security'),
+                          ),
+                          _buildItem(
+                            context,
+                            Icons.notifications,
+                            AppLocalizations.of(
+                              context,
+                            ).t('common.notification'),
+                          ),
+                          _buildItem(
+                            context,
+                            Icons.lock,
+                            AppLocalizations.of(context).t('common.private'),
+                          ),
+                          const SizedBox(height: 12),
 
+                          // Dropdown chọn ngôn ngữ
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: localeState.locale.languageCode,
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'vi',
+                                    child: Text('Tiếng Việt'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'en',
+                                    child: Text('English'),
+                                  ),
+                                ],
+                                onChanged: (code) {
+                                  if (code == null) return;
+                                  localeNotifier.setLocale(Locale(code));
+                                },
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 21),
                           GestureDetector(
                             onTap: () => _signOut(context),
@@ -206,7 +261,9 @@ class _UserPageState extends ConsumerState<UserPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  "Đăng xuất",
+                                  AppLocalizations.of(
+                                    context,
+                                  ).t('common.logout'),
                                   style: Theme.of(context).textTheme.bodyMedium!
                                       .copyWith(
                                         fontSize: 17,

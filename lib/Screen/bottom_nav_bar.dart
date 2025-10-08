@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:monthly_expenses_mobile_app/l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'statement.dart';
 import 'budget.dart';
@@ -69,23 +70,23 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               children: [
                 _buildNavItem(
                   icon: CupertinoIcons.house_alt_fill,
-                  label: 'Trang chủ',
+                  label: AppLocalizations.of(context).t('nav.home'),
                   index: 0,
                 ),
                 _buildNavItem(
                   icon: CupertinoIcons.chart_pie_fill,
-                  label: 'Báo cáo',
+                  label: AppLocalizations.of(context).t('nav.statement'),
                   index: 1,
                 ),
                 const SizedBox(width: 60),
                 _buildNavItem(
                   icon: CupertinoIcons.money_dollar_circle_fill,
-                  label: 'Ngân sách',
+                  label: AppLocalizations.of(context).t('nav.budget'),
                   index: 2,
                 ),
                 _buildNavItem(
                   icon: CupertinoIcons.person_fill,
-                  label: 'Cá nhân',
+                  label: 'User',
                   index: 3,
                 ),
               ],

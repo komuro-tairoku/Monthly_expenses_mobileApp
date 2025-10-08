@@ -17,7 +17,6 @@ class AppThemeState extends ChangeNotifier {
 
   Future<void> _initTheme() async {
     try {
-      // Mở box nếu chưa mở
       if (!Hive.isBoxOpen('settings')) {
         _settingsBox = await Hive.openBox('settings');
       } else {

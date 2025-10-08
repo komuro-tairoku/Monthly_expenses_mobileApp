@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monthly_expenses_mobile_app/l10n/app_localizations.dart';
 
 class Budget extends StatefulWidget {
   const Budget({super.key});
@@ -14,15 +15,13 @@ class _BudgetState extends State<Budget> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         toolbarHeight: 100,
-        title: Text('Ngân sách', style: TextStyle(fontSize: 35)),
+        title: Text(
+          AppLocalizations.of(context).t('budget.title'),
+          style: TextStyle(fontSize: 35),
+        ),
         centerTitle: true,
       ),
-      body: Center(
-        child: Text(
-          'Tính năng sẽ ra mắt trong tương lai ^^',
-          style: TextStyle(fontSize: 22),
-        ),
-      ),
+      body: Center(child: Text('Was coming', style: TextStyle(fontSize: 22))),
     );
     ;
   }
