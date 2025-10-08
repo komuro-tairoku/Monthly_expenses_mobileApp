@@ -45,6 +45,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     _initializeApp();
   }
 
+  //kiem tra User dang nhap
   Future<void> _initializeApp() async {
     try {
       await _checkAppState();
@@ -60,6 +61,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
   }
 
+  //kiem tra trang thai User hien tai
   Future<void> _checkAppState() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -117,7 +119,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            supportedLocales: const [Locale('vi'), Locale('es'), Locale('en')],
+            supportedLocales: const [Locale('vi'), Locale('en')],
             home: Scaffold(
               body: Center(
                 child: MediaQuery(
@@ -183,6 +185,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     return app;
   }
 
+  //kiem tra app close -> tat chay ngam
   @override
   void dispose() {
     SyncService.stop();

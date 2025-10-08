@@ -402,7 +402,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Icon(
                           Icons.person,
                           size: 40,
-                          color: Color(0xFF6B43FF),
+                          color: Colors.black,
                         ),
                       ),
                     ],

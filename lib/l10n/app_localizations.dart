@@ -41,7 +41,7 @@ class AppLocalizations {
       if (value is Map<String, dynamic> && value.containsKey(p)) {
         value = value[p];
       } else {
-        return key; // fallback to key if missing
+        return key;
       }
     }
     return value is String ? value : key;
@@ -53,8 +53,7 @@ class _AppLocalizationsDelegate
   const _AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) =>
-      ['vi', 'es', 'en'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => ['vi', 'en'].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) async {

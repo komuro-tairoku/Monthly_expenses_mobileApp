@@ -2,9 +2,11 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../db/transaction.dart';
 
 class HiveHelper {
+  //luu transaction -> transaction model
   static Box<TransactionModel>? _transactionBox;
   static Box? _settingsBox;
 
+  //luu giao dich vao Hive
   static Future<Box<TransactionModel>> getTransactionBox() async {
     if (_transactionBox != null && _transactionBox!.isOpen) {
       return _transactionBox!;
@@ -56,6 +58,7 @@ class HiveHelper {
     }
   }
 
+  //luu seenIntro, theme
   static Future<Box> getSettingsBox() async {
     if (_settingsBox != null && _settingsBox!.isOpen) {
       return _settingsBox!;

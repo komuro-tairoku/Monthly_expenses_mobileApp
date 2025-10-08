@@ -297,7 +297,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       InkWell(
                         onTap: _isLoading ? null : _signInAsGuest,
-                        child: const Icon(Icons.person, size: 40),
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.black,
+                        ),
                       ),
                     ],
                   ),

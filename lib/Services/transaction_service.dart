@@ -22,11 +22,11 @@ class TransactionService {
             .collection('items')
             .doc(txn.id)
             .delete();
-        print("✅ Đã xoá giao dịch trên Firebase");
+        print("Đã xoá giao dịch trên Firebase");
       } catch (e) {
         txn.isSynced = false;
         await txn.save();
-        print("❌ Lỗi khi xoá Firebase: $e");
+        print("Lỗi khi xoá Firebase: $e");
       }
     }
   }
@@ -43,7 +43,7 @@ class TransactionService {
     await txn.save();
 
     if (user == null || user.isAnonymous) {
-      print("🟡 Guest mode: không cập nhật Firebase");
+      print("Guest mode: không cập nhật Firebase");
       return;
     }
 
@@ -60,9 +60,9 @@ class TransactionService {
           'label': newNote,
           'amount': newAmount,
         });
-        print("✅ Cập nhật Firebase thành công");
+        print("Cập nhật Firebase thành công");
       } catch (e) {
-        print("❌ Lỗi cập nhật Firebase: $e");
+        print("Lỗi cập nhật Firebase: $e");
       }
     }
   }

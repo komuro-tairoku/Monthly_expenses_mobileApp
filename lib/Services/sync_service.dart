@@ -63,6 +63,7 @@ class SyncService {
     }
   }
 
+  //kiem tra ket noi Internet va sync data
   static void start() {
     if (_isStarted) {
       return;
@@ -92,6 +93,7 @@ class SyncService {
     _isStarted = false;
   }
 
+  //dong bo du lieu off-online
   static Future<void> _syncUnsyncedTransactions() async {
     if (_isSyncing) {
       return;
