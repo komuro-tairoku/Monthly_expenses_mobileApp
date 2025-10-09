@@ -107,15 +107,21 @@ class _UserPageState extends ConsumerState<UserPage> {
         children: [
           Column(
             children: [
-              // Header
               Container(
                 height: 150,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
                     colors: [Color(0xFF6B43FF), Color(0xFF8B5FFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6B43FF).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Align(
                   alignment: Alignment.centerRight,
@@ -224,29 +230,69 @@ class _UserPageState extends ConsumerState<UserPage> {
 
                           // Dropdown chọn ngôn ngữ
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: localeState.locale.languageCode,
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'vi',
-                                    child: Text('Tiếng Việt'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'en',
-                                    child: Text('English'),
-                                  ),
-                                ],
-                                onChanged: (code) {
-                                  if (code == null) return;
-                                  localeNotifier.setLocale(Locale(code));
-                                },
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceVariant.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outline.withOpacity(0.2),
+                                width: 1,
                               ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.language,
+                                  size: 20,
+                                  color: Color(0xFF6B43FF),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: localeState.locale.languageCode,
+                                      isExpanded: true,
+                                      icon: Icon(
+                                        Icons.keyboard_arrow_down,
+                                        size: 20,
+                                        color: Color(0xFF6B43FF),
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      dropdownColor: Theme.of(
+                                        context,
+                                      ).colorScheme.surface,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium!
+                                          .copyWith(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: 'vi',
+                                          child: Text('Tiếng Việt'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'en',
+                                          child: Text('English'),
+                                        ),
+                                      ],
+                                      onChanged: (code) {
+                                        if (code == null) return;
+                                        localeNotifier.setLocale(Locale(code));
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 21),

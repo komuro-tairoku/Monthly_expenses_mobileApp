@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   PopupMenuItem(
                     value: 'expense',
                     child: Text(
-                      AppLocalizations.of(context).t("home.filter_expense"),
+                      AppLocalizations.of(context).t("home.filter_espense"),
                     ),
                   ),
                 ],
