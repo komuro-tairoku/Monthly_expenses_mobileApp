@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../db/transaction.dart';
 import '../Services/transaction_service.dart';
+import '../Services/category_translator.dart';
 import '../l10n/app_localizations.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final NumberFormat _amountFormatter = NumberFormat('#,##0', 'en_US');
   String _formatAmount(double value) => _amountFormatter.format(value);
   String _formatDate(DateTime date) =>
@@ -25,6 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _filterType = 'all';
+
+  /// Translate category if it matches a known category, otherwise return original
+  String _translateCategory(String category) {
+    final translationKey = CategoryTranslator.getTranslationKey(category);
+    if (CategoryTranslator.isTranslatable(category)) {
+      return AppLocalizations.of(context).t(translationKey);
+    }
+    return category;
+  }
 
   Future<bool> _confirmDelete(BuildContext context) async {
     return await showDialog<bool>(
@@ -275,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ? Colors.green
                                           : Colors.red,
                                     ),
-                                    title: Text(txn.note),
+                                    title: Text(_translateCategory(txn.note)),
                                     subtitle: Text(
                                       "${txn.isIncome ? AppLocalizations.of(context).t("home.income") : AppLocalizations.of(context).t("home.expense")} • ${_formatDate(txn.date)}",
                                     ),
@@ -372,7 +383,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showEditDialog(TransactionModel txn) {
-    final noteController = TextEditingController(text: txn.note);
+    final noteController = TextEditingController(
+      text: _translateCategory(txn.note),
+    );
     final amountController = TextEditingController(
       text: _formatAmount(txn.amount),
     );

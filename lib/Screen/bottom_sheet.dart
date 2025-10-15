@@ -335,6 +335,7 @@ class _BottomSheetState extends State<bottomSheet> {
         ).t(option['labelKey'] ?? '');
         return GestureDetector(
           onTap: () {
+            // Pass the translated label for display, but we'll store it properly
             _showAmountSheet(label);
           },
           child: Column(

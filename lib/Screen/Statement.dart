@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
+import '../Services/category_translator.dart';
 
 class Statement extends StatefulWidget {
   const Statement({super.key});
@@ -13,7 +15,51 @@ class Statement extends StatefulWidget {
 
 class _StatementState extends State<Statement> {
   DateTime _selectedDate = DateTime.now();
-  String _filterType = 'day'; // day | week | month
+  String _filterType = 'day';
+
+  String formatCurrency(double amount, {bool isIncome = false}) {
+    final formatter = NumberFormat("#,###", "vi_VN");
+    final formatted = formatter.format(amount.abs());
+    return "${isIncome ? '+' : '-'}$formatted đ";
+  }
+
+  /// Translate category if it matches a known category, otherwise return original
+  String _translateCategory(String category) {
+    final translationKey = CategoryTranslator.getTranslationKey(category);
+    if (CategoryTranslator.isTranslatable(category)) {
+      return AppLocalizations.of(context).t(translationKey);
+    }
+    return category;
+  }
+
+  /// Get color for a category (works with both translated and untranslated names)
+  Color _getCategoryColor(String category) {
+    // Map of translation keys to colors
+    const Map<String, Color> categoryColors = {
+      "sheet.shopping": Color(0xFFFF3B30),
+      "sheet.food": Color(0xFFFF9500),
+      "sheet.phone": Color(0xFFFFCC00),
+      "sheet.entertainment": Color(0xFFAF52DE),
+      "sheet.education": Color(0xFFFF2D55),
+      "sheet.beauty": Color(0xFFFF6B81),
+      "sheet.sports": Color(0xFFFF8C00),
+      "sheet.social": Color(0xFFFFD60A),
+      "sheet.housing": Color(0xFFFF5E3A),
+      "sheet.electricity": Color(0xFFFF9500),
+      "sheet.water": Color(0xFFFFC300),
+      "sheet.clothes": Color(0xFFFF9F0A),
+      "sheet.transport": Color(0xFFFF453A),
+      "sheet.other_expense": Color(0xFFEA4C89),
+      "sheet.salary": Color(0xFF34C759),
+      "sheet.allowance": Color(0xFF32ADE6),
+      "sheet.bonus": Color(0xFF30B0C7),
+      "sheet.other_income": Color(0xFF007AFF),
+    };
+
+    // Get translation key for the category
+    final translationKey = CategoryTranslator.getTranslationKey(category);
+    return categoryColors[translationKey] ?? Colors.grey;
+  }
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -106,18 +152,14 @@ class _StatementState extends State<Statement> {
         ],
       ),
 
-      // === BODY ===
       body: Builder(
         builder: (context) {
           final user = FirebaseAuth.instance.currentUser;
 
-          // 🔹 Nếu chưa đăng nhập (guest)
           if (user == null) {
             return Center(
               child: Text(
-                AppLocalizations.of(
-                  context,
-                ).t('statement.login_required'), // từ file vi.json
+                AppLocalizations.of(context).t('statement.login_required'),
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.grey[700],
@@ -128,7 +170,6 @@ class _StatementState extends State<Statement> {
             );
           }
 
-          // 🔹 Nếu đã đăng nhập
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: FirebaseFirestore.instance
                 .collection("transactions")
@@ -178,11 +219,14 @@ class _StatementState extends State<Statement> {
                   .toList();
 
               final Map<String, double> categoryTotals = {};
+              final Map<String, bool> categoryType = {};
               for (final t in transactions) {
                 final category = (t['category'] as String?) ?? 'Khác';
                 final amount = (t['amount'] as double?) ?? 0.0;
+                final isIncome = t['isIncome'] ?? false;
                 categoryTotals[category] =
                     (categoryTotals[category] ?? 0) + amount;
+                categoryType[category] = isIncome;
               }
 
               final total = categoryTotals.values.fold(0.0, (a, b) => a + b);
@@ -195,31 +239,10 @@ class _StatementState extends State<Statement> {
                 );
               }
 
-              final Map<String, Color> categoryColors = {
-                "Mua sắm": Color(0xFFFF3B30),
-                "Ăn uống": Color(0xFFFF9500),
-                "Điện thoại": Color(0xFFFFCC00),
-                "Giải trí": Color(0xFFAF52DE),
-                "Giáo dục": Color(0xFFFF2D55),
-                "Sắc đẹp": Color(0xFFFF6B81),
-                "Thể thao": Color(0xFFFF8C00),
-                "Xã hội": Color(0xFFFFD60A),
-                "Nhà ở": Color(0xFFFF5E3A),
-                "Tiền điện": Color(0xFFFF9500),
-                "Tiền nước": Color(0xFFFFC300),
-                "Quần áo": Color(0xFFFF9F0A),
-                "Đi lại": Color(0xFFFF453A),
-                "Chi khác": Color(0xFFEA4C89),
-                "Tiền lương": Color(0xFF34C759),
-                "Phụ cấp": Color(0xFF32ADE6),
-                "Thưởng": Color(0xFF30B0C7),
-                "Thu khác": Color(0xFF007AFF),
-              };
-
               final sections = <PieChartSectionData>[];
               categoryTotals.forEach((category, amount) {
                 final percentage = (amount / total * 100);
-                final color = categoryColors[category] ?? Colors.grey;
+                final color = _getCategoryColor(category);
 
                 sections.add(
                   PieChartSectionData(
@@ -287,16 +310,21 @@ class _StatementState extends State<Statement> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         children: categoryTotals.entries.map((entry) {
-                          final color =
-                              categoryColors[entry.key] ?? Colors.grey;
+                          final color = _getCategoryColor(entry.key);
+                          final isIncome = categoryType[entry.key] ?? false;
+                          final translatedCategory = _translateCategory(
+                            entry.key,
+                          );
+
                           return ListTile(
                             leading: CircleAvatar(backgroundColor: color),
-                            title: Text(entry.key),
+                            title: Text(translatedCategory),
                             trailing: Text(
-                              "${entry.value.toStringAsFixed(0)} đ",
-                              style: const TextStyle(
+                              formatCurrency(entry.value, isIncome: isIncome),
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
+                                color: isIncome ? Colors.green : Colors.red,
                               ),
                             ),
                           );
