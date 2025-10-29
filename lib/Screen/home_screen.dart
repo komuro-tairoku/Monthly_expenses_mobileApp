@@ -403,6 +403,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context).t("home.content"),
                 ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               TextField(
                 controller: amountController,
@@ -410,6 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 decoration: InputDecoration(
                   labelText: AppLocalizations.of(context).t("home.money"),
                 ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
