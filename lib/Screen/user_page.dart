@@ -226,8 +226,12 @@ class _UserPageState extends ConsumerState<UserPage> {
                             Icons.lock,
                             AppLocalizations.of(context).t('common.private'),
                           ),
+                          _buildItem(
+                            context,
+                            Icons.report,
+                            AppLocalizations.of(context).t('common.report'),
+                          ),
                           const SizedBox(height: 12),
-
                           // Dropdown chọn ngôn ngữ
                           Container(
                             padding: const EdgeInsets.symmetric(

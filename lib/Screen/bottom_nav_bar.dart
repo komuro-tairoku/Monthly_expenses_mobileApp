@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:monthly_expenses_mobile_app/l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'statement.dart';
-import 'budget.dart';
+import 'chatbox.dart';
 import 'user_page.dart';
 import 'bottom_sheet.dart';
 
@@ -21,7 +21,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   static final List<Widget> _screens = [
     const HomeScreen(),
     const Statement(),
-    const Budget(),
+    const Chatbox(),
     const UserPage(),
   ];
 
@@ -81,7 +81,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
                 const SizedBox(width: 60),
                 _buildNavItem(
                   icon: CupertinoIcons.money_dollar_circle_fill,
-                  label: AppLocalizations.of(context).t('nav.budget'),
+                  label: AppLocalizations.of(context).t('nav.chatbox'),
                   index: 2,
                 ),
                 _buildNavItem(

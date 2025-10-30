@@ -53,13 +53,13 @@
     "label_week": "Tuần: {ds}/{ms} - {de}/{me}",
     "label_month": "Tháng: {m}/{y}"
   },
-  "budget": {
-    "title": "Ngân sách"
+  "chatbox": {
+    "title": "ChatBox"
   },
   "nav": {
     "home": "Trang chủ",
     "statement": "Báo cáo",
-    "budget": "Ngân sách"
+    "chatbox": "ChatBox"
   },
   "common": {
     "delete": "Xóa",
@@ -71,7 +71,8 @@
     "logout": "Đăng xuất",
     "security": "Bảo mật",
     "notification": "Thông báo",
-    "private": "Riêng tư"
+    "private": "Riêng tư",
+    "report": "Gửi vấn đề cho chúng tôi!"
   },
   "sheet": {
     "income": "Tiền thu",

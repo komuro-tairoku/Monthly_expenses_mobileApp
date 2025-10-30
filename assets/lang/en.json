@@ -33,13 +33,13 @@
     "label_week": "Week: {ds}/{ms} - {de}/{me}",
     "label_month": "Month: {m}/{y}"
   },
-  "budget": {
-    "title": "Budget"
+  "chatbox": {
+    "title": "Chatbox"
   },
   "nav": {
     "home": "Home",
     "statement": "Statement",
-    "budget": "Budget"
+    "chatbox": "Chatbox"
   },
   "common": {
     "delete": "Delete",
@@ -51,7 +51,8 @@
     "logout": "Logout",
     "security": "Security",
     "notification": "Notification",
-    "private": "Private"
+    "private": "Private",
+    "report": "Send us an issue report!"
   },
   "sheet": {
     "income": "Income",
