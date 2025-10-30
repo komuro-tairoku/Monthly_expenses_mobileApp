@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'theme_provider.dart';
 import 'login_screen.dart';
@@ -93,6 +94,130 @@ class _UserPageState extends ConsumerState<UserPage> {
     } catch (e) {
       debugPrint('Sign out error: $e');
     }
+  }
+
+  void _showReportDialog(BuildContext context) {
+    final TextEditingController titleController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final user = FirebaseAuth.instance.currentUser;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          AppLocalizations.of(context).t('common.report'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tiêu đề',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  hintText: 'Nhập tiêu đề vấn đề',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Mô tả chi tiết',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: descriptionController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText: 'Mô tả chi tiết vấn đề bạn gặp phải...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isEmpty ||
+                  descriptionController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vui lòng điền đầy đủ thông tin'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
+              // Construct email
+              final String yourEmail = 'bosscyrus12yahoo@gmail.com';
+              final String subject = Uri.encodeComponent(
+                'Bug Report: ${titleController.text}',
+              );
+              final String body = Uri.encodeComponent(
+                'User: ${user?.email ?? "Unknown"}\n'
+                'User Name: ${user?.displayName ?? "N/A"}\n'
+                'Date: ${DateTime.now()}\n\n'
+                'Title: ${titleController.text}\n\n'
+                'Description:\n${descriptionController.text}',
+              );
+
+              final Uri emailUri = Uri.parse(
+                'mailto:$yourEmail?subject=$subject&body=$body',
+              );
+
+              try {
+                final bool launched = await launchUrl(
+                  emailUri,
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!launched && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Không thể mở ứng dụng email'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                debugPrint('Error launching email: $e');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6B43FF),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Gửi'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -226,10 +351,13 @@ class _UserPageState extends ConsumerState<UserPage> {
                             Icons.lock,
                             AppLocalizations.of(context).t('common.private'),
                           ),
-                          _buildItem(
-                            context,
-                            Icons.report,
-                            AppLocalizations.of(context).t('common.report'),
+                          GestureDetector(
+                            onTap: () => _showReportDialog(context),
+                            child: _buildItem(
+                              context,
+                              Icons.report,
+                              AppLocalizations.of(context).t('common.report'),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           // Dropdown chọn ngôn ngữ
