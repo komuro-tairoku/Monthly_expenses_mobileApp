@@ -97,5 +97,14 @@
     "bonus": "Thưởng",
     "other_income": "Thu khác",
     "note": "Ghi chú"
+  },
+  "report": {
+    "title": "Tiêu đề",
+    "input_title": "Nhập tiêu đề vấn đề",
+    "detail": "Mô tả chi tiết",
+    "input_detail": "Mô tả chi tiết vấn đề bạn gặp phải",
+    "send": "Gửi",
+    "cancel": "Hủy",
+    "fill_all": "Vui lòng điền đầy đủ thông tin"
   }
 }

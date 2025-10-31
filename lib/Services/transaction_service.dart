@@ -31,6 +31,32 @@ class TransactionService {
     }
   }
 
+  static Future<List<TransactionModel>> getUserTransactions() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null || user.isAnonymous) {
+      print("⚠️ Chưa đăng nhập, không thể tải dữ liệu Firebase");
+      return [];
+    }
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(user.uid)
+          .collection('items')
+          .orderBy('date', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return TransactionModel.fromMap(data)..id = doc.id;
+      }).toList();
+    } catch (e) {
+      print("❌ Lỗi khi tải dữ liệu từ Firebase: $e");
+      return [];
+    }
+  }
+
   static Future<void> updateTransaction(
     TransactionModel txn,
     String newNote,

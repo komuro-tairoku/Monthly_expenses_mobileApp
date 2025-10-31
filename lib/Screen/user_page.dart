@@ -114,7 +114,7 @@ class _UserPageState extends ConsumerState<UserPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tiêu đề',
+                AppLocalizations.of(context).t("report.title"),
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
@@ -123,7 +123,9 @@ class _UserPageState extends ConsumerState<UserPage> {
               TextField(
                 controller: titleController,
                 decoration: InputDecoration(
-                  hintText: 'Nhập tiêu đề vấn đề',
+                  hintText: AppLocalizations.of(
+                    context,
+                  ).t("report.input_title"),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -135,7 +137,7 @@ class _UserPageState extends ConsumerState<UserPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Mô tả chi tiết',
+                AppLocalizations.of(context).t("report.detail"),
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.w600),
@@ -145,7 +147,9 @@ class _UserPageState extends ConsumerState<UserPage> {
                 controller: descriptionController,
                 maxLines: 5,
                 decoration: InputDecoration(
-                  hintText: 'Mô tả chi tiết vấn đề bạn gặp phải...',
+                  hintText: AppLocalizations.of(
+                    context,
+                  ).t("report.input_detail"),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -161,15 +165,20 @@ class _UserPageState extends ConsumerState<UserPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
+            child: Text(
+              AppLocalizations.of(context).t("report.cancel"),
+              style: TextStyle(color: Colors.grey[600]),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
               if (titleController.text.isEmpty ||
                   descriptionController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vui lòng điền đầy đủ thông tin'),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context).t("report.fill_all"),
+                    ),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -213,7 +222,7 @@ class _UserPageState extends ConsumerState<UserPage> {
               backgroundColor: const Color(0xFF6B43FF),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Gửi'),
+            child: Text(AppLocalizations.of(context).t("report.send")),
           ),
         ],
       ),

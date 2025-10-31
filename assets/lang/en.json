@@ -77,5 +77,14 @@
     "bonus": "Bonus",
     "other_income": "Other Income",
     "note": "Note"
+  },
+  "report": {
+    "title": "Title",
+    "input_title": "Enter the issue title",
+    "detail": "Detailed description",
+    "input_detail": "Describe your problem in detail",
+    "send": "Send",
+    "cancel": "Cancel",
+    "fill_all": "Please fill in all information"
   }
 }
