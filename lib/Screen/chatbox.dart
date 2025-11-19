@@ -175,7 +175,7 @@ ${transactionDetails.join('\n')}
 
       final prompt = [
         Content.text("""
-        Bạn là trợ lý tài chính cá nhân thông minh, thân thiện và chi tiết.
+        Bạn là trợ lý tài chính cá nhân thông minh, thân thiện.
         
         THÔNG TIN TÀI CHÍNH CỦA NGƯỜI DÙNG:
         $spendingInfo
@@ -184,6 +184,7 @@ ${transactionDetails.join('\n')}
         "$text"
         
         HƯỚNG DẪN TRẢ LỜI:
+        - Trả lời ngắn gọn dễ hiểu, chỉ trả lời chi tiết khi người dùng yêu cầu
         - Phân tích dữ liệu chi tiết nếu người dùng hỏi về giao dịch cụ thể
         - Đưa ra lời khuyên thực tế dựa trên thói quen chi tiêu
         - Trả lời ngắn gọn nhưng đầy đủ thông tin
