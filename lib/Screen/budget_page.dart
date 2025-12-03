@@ -274,7 +274,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                   builder: (ctx) => AlertDialog(
                     title: const Text('Xóa tất cả ngân sách'),
                     content: const Text(
-                      'Bạn có chắc muốn xóa tất cả ngân sách? Hành động này không thể hoàn tác.',
+                      'Bạn có chắc muốn xóa tất cả ngân sách?',
                     ),
                     actions: [
                       TextButton(
@@ -345,8 +345,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTotalOverview(budgets, transactionBox),
-                          const SizedBox(height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -389,139 +387,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
         backgroundColor: const Color(0xFF6B43FF),
         icon: const Icon(Icons.add),
         label: const Text('Thêm ngân sách'),
-      ),
-    );
-  }
-
-  Widget _buildTotalOverview(
-    List<BudgetModel> budgets,
-    Box<TransactionModel> transactionBox,
-  ) {
-    double totalBudget = budgets.fold(0, (sum, b) => sum + b.amount);
-    double totalSpent = 0;
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-    for (var txn in transactionBox.values) {
-      if (!txn.isIncome &&
-          txn.date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
-          txn.date.isBefore(endOfMonth.add(const Duration(seconds: 1))))
-        totalSpent += txn.amount;
-    }
-    final percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0.0;
-    final remaining = totalBudget - totalSpent;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6B43FF), Color(0xFF8B5FFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6B43FF).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tổng ngân sách tháng này',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            totalBudget > 0
-                ? '₫${totalBudget.toStringAsFixed(0)}'
-                : 'Chưa đặt ngân sách',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (totalBudget > 0) ...[
-            const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: percentage / 100,
-                minHeight: 10,
-                backgroundColor: Colors.white30,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  percentage > 90
-                      ? Colors.red
-                      : percentage > 70
-                      ? Colors.orange
-                      : Colors.green,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đã chi',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    Text(
-                      '₫${totalSpent.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Còn lại',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    Text(
-                      '₫${remaining.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        color: remaining >= 0 ? Colors.white : Colors.red[300],
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text(
-                      'Phần trăm',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    Text(
-                      '${percentage.toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ],
       ),
     );
   }
