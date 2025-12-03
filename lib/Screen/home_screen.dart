@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../db/transaction.dart';
 import '../Services/transaction_service.dart';
 import '../Services/category_translator.dart';
@@ -150,16 +152,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     );
-                    if (confirm == true) {
-                      await box.clear();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Đã xóa tất cả giao dịch'),
-                            backgroundColor: Colors.orange,
-                          ),
+
+                    if (confirm != true) return;
+
+                    final box = Hive.box<TransactionModel>('transactions');
+
+                    // ====== XÓA LOCAL ======
+                    await box.clear(); // Xóa hết local
+                    await box
+                        .compact(); // Thu gọn file để chắc chắn không còn sót dữ liệu
+
+                    // ====== XÓA FIREBASE ======
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null && !user.isAnonymous) {
+                      try {
+                        final ref = FirebaseFirestore.instance
+                            .collection('transactions')
+                            .doc(user.uid)
+                            .collection('items');
+
+                        final snapshot = await ref.get();
+
+                        WriteBatch batch = FirebaseFirestore.instance.batch();
+
+                        for (var doc in snapshot.docs) {
+                          batch.delete(doc.reference);
+                        }
+
+                        await batch.commit();
+
+                        print(
+                          '🔥 Đã xóa sạch Firebase: ${snapshot.docs.length} giao dịch',
                         );
+                      } catch (e) {
+                        print('❌ Lỗi khi xóa Firebase: $e');
                       }
+                    }
+
+                    // ====== REFRESH UI ======
+                    if (mounted) {
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Đã xóa tất cả giao dịch thành công!'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
                     }
                   }
                 },
