@@ -1,36 +1,37 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'transaction.dart';
+part of 'budget.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
+class BudgetModelAdapter extends TypeAdapter<BudgetModel> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
-  TransactionModel read(BinaryReader reader) {
+  BudgetModel read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return TransactionModel(
+    return BudgetModel(
       id: fields[0] as String,
       category: fields[1] as String,
       amount: fields[2] as double,
-      note: fields[3] as String,
-      date: fields[4] as DateTime,
-      isIncome: fields[5] as bool,
-      isSynced: fields[6] as bool,
+      month: fields[3] as int,
+      year: fields[4] as int,
+      isSynced: fields[5] as bool,
+      createdAt: fields[6] as DateTime?,
+      updatedAt: fields[7] as DateTime?,
     );
   }
 
   @override
-  void write(BinaryWriter writer, TransactionModel obj) {
+  void write(BinaryWriter writer, BudgetModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,13 +39,15 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       ..writeByte(2)
       ..write(obj.amount)
       ..writeByte(3)
-      ..write(obj.note)
+      ..write(obj.month)
       ..writeByte(4)
-      ..write(obj.date)
+      ..write(obj.year)
       ..writeByte(5)
-      ..write(obj.isIncome)
+      ..write(obj.isSynced)
       ..writeByte(6)
-      ..write(obj.isSynced);
+      ..write(obj.createdAt)
+      ..writeByte(7)
+      ..write(obj.updatedAt);
   }
 
   @override
@@ -53,7 +56,7 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TransactionModelAdapter &&
+      other is BudgetModelAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'theme_provider.dart';
 import 'login_screen.dart';
+import 'budget_page.dart';
 import '../l10n/locale_provider.dart';
 
 class UserPage extends ConsumerStatefulWidget {
@@ -348,12 +349,22 @@ class _UserPageState extends ConsumerState<UserPage> {
                             Icons.security,
                             AppLocalizations.of(context).t('common.security'),
                           ),
-                          _buildItem(
-                            context,
-                            Icons.notifications,
-                            AppLocalizations.of(
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const BudgetPage(),
+                                ),
+                              );
+                            },
+                            child: _buildItem(
                               context,
-                            ).t('common.notification'),
+                              Icons.notifications,
+                              AppLocalizations.of(
+                                context,
+                              ).t('common.notification'),
+                            ),
                           ),
                           _buildItem(
                             context,

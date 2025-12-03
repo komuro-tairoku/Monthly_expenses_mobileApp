@@ -7,7 +7,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'firebase_options.dart';
 import './db/transaction.dart';
+import './db/budget.dart';
 import './Services/sync_service.dart';
+import './Services/budget_service.dart';
 import 'Screen/intro_page.dart';
 import 'Screen/login_screen.dart';
 import 'Screen/bottom_nav_bar.dart';
@@ -28,6 +30,7 @@ Future<void> main() async {
   );
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Hive.registerAdapter(TransactionModelAdapter());
+  Hive.registerAdapter(BudgetModelAdapter());
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -57,6 +60,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null && !user.isAnonymous) {
         SyncService.start();
+        // Load budgets từ Firebase
+        await BudgetService.loadBudgetsFromFirebase();
       }
     } catch (e) {
       debugPrint("Error during initialization: $e");

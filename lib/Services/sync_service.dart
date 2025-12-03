@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../db/transaction.dart';
 import '../Services/hive_helper.dart';
+import '../Services/budget_service.dart';
 
 class SyncService {
   static var _subscription;
