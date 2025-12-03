@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../db/transaction.dart';
 import '../Services/transaction_service.dart';
 import '../Services/category_translator.dart';
+import '../Services/budget_service.dart';
 import '../l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _formatAmount(double value) => _amountFormatter.format(value);
   String _formatDate(DateTime date) =>
       DateFormat('dd/MM/yyyy HH:mm').format(date);
+
+  // Static để giữ trạng thái qua các lần rebuild
+  static final Set<String> _shownBudgetWarnings = {};
+  static String _lastCheckedMonth = '';
 
   Future<Box<TransactionModel>> _openTransactionBox() async {
     return Hive.isBoxOpen('transactions')
@@ -157,12 +162,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                     final box = Hive.box<TransactionModel>('transactions');
 
-                    // ====== XÓA LOCAL ======
-                    await box.clear(); // Xóa hết local
-                    await box
-                        .compact(); // Thu gọn file để chắc chắn không còn sót dữ liệu
+                    await box.clear();
+                    await box.compact();
 
-                    // ====== XÓA FIREBASE ======
                     final user = FirebaseAuth.instance.currentUser;
                     if (user != null && !user.isAnonymous) {
                       try {
@@ -189,7 +191,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       }
                     }
 
-                    // ====== REFRESH UI ======
                     if (mounted) {
                       setState(() {});
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -231,6 +232,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               final totalIncome = totals['income']!;
               final totalExpense = totals['expense']!;
               final balance = totals['balance']!;
+
+              // After transactions update, check budget thresholds and notify
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _checkBudgetsAndNotify(box);
+              });
 
               return Column(
                 children: [
@@ -404,6 +410,155 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
     );
+  }
+
+  /// Check current month budgets and show a dialog when threshold is reached.
+  Future<void> _checkBudgetsAndNotify(
+    Box<TransactionModel> transactionBox,
+  ) async {
+    if (!mounted) return;
+
+    try {
+      // Reset cảnh báo nếu đã sang tháng mới
+      final currentMonth = '${DateTime.now().year}-${DateTime.now().month}';
+      if (_lastCheckedMonth != currentMonth) {
+        _shownBudgetWarnings.clear();
+        _lastCheckedMonth = currentMonth;
+      }
+
+      final budgets = await BudgetService.getCurrentMonthBudgets();
+      print('📊 Kiểm tra ${budgets.length} budgets...');
+
+      for (final budget in budgets) {
+        // Tạo key duy nhất cho mỗi cảnh báo (category + tháng + level)
+        final spent = await BudgetService.getSpentAmountForCategory(
+          budget.category,
+          transactionBox,
+          budget.month,
+          budget.year,
+        );
+
+        final level = BudgetService.getWarningLevel(spent, budget.amount);
+        final warningKey =
+            '${budget.category}_${budget.month}_${budget.year}_$level';
+
+        print(
+          '  ${budget.category}: $spent/${budget.amount} (${((spent / budget.amount) * 100).toStringAsFixed(1)}%) - Level: $level',
+        );
+
+        // Bỏ qua nếu đã hiển thị cảnh báo cho trường hợp này rồi
+        if (_shownBudgetWarnings.contains(warningKey)) {
+          print('  ⏭️ Đã hiển thị cảnh báo cho $warningKey');
+          continue;
+        }
+
+        // Hiển thị dialog khi đạt ngưỡng >= 1 (80% trở lên)
+        if (level >= 1) {
+          print('  🔔 Hiển thị cảnh báo cho ${budget.category} (level $level)');
+          _shownBudgetWarnings.add(warningKey);
+
+          if (!mounted) return;
+
+          final color = level >= 3
+              ? Colors.red
+              : (level == 2 ? Colors.orange : Colors.yellow.shade700);
+          final icon = level >= 3
+              ? Icons.error
+              : (level == 2 ? Icons.warning_amber : Icons.info);
+
+          // Dịch tên category
+          final translatedCategory =
+              CategoryTranslator.isTranslatable(budget.category)
+              ? AppLocalizations.of(
+                  context,
+                ).t(CategoryTranslator.getTranslationKey(budget.category))
+              : budget.category;
+
+          final message = BudgetService.getWarningMessage(
+            level,
+            translatedCategory,
+          );
+
+          // Hiển thị dialog
+          await showDialog(
+            context: context,
+            barrierDismissible: true,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: Theme.of(context).dialogBackgroundColor,
+              title: Row(
+                children: [
+                  Icon(icon, color: color, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Cảnh báo ngân sách',
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: color.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Chi tiêu: ${_formatAmount(spent)} đ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                        Text(
+                          'Ngân sách: ${_formatAmount(budget.amount)} đ',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          'Phần trăm: ${((spent / budget.amount) * 100).toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Đã hiểu',
+                    style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          // Chỉ hiển thị 1 dialog tại 1 thời điểm
+          break;
+        }
+      }
+    } catch (e) {
+      print('❌ Lỗi khi kiểm tra ngân sách: $e');
+    }
   }
 
   Widget _buildStatItem({

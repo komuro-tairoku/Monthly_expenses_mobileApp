@@ -121,6 +121,10 @@ class BudgetService {
     final startDate = DateTime(year, month, 1);
     final endDate = DateTime(year, month + 1, 0, 23, 59, 59);
 
+    // Debug
+    print('🔍 Kiểm tra budget cho category: $category (tháng $month/$year)');
+    int matchCount = 0;
+
     for (var txn in transactionBox.values) {
       // Kiểm tra nếu là chi tiêu (không phải thu nhập)
       if (txn.isIncome) continue;
@@ -128,18 +132,27 @@ class BudgetService {
       // Kiểm tra nếu transaction trong khoảng thời gian
       if (txn.date.isBefore(startDate) || txn.date.isAfter(endDate)) continue;
 
-      // So sánh category - cần normalize vì có thể là tiếng Việt hoặc English
+      // So sánh cả category và note vì transaction có thể lưu ở note
       final txnCategory = txn.category.trim();
+      final txnNote = txn.note.trim();
       final budgetCategory = category.trim();
 
       // So sánh trực tiếp hoặc thông qua translation
-      if (txnCategory == budgetCategory ||
+      final isMatch =
+          txnCategory == budgetCategory ||
+          txnNote == budgetCategory ||
           _normalizeCategory(txnCategory) ==
-              _normalizeCategory(budgetCategory)) {
+              _normalizeCategory(budgetCategory) ||
+          _normalizeCategory(txnNote) == _normalizeCategory(budgetCategory);
+
+      if (isMatch) {
         total += txn.amount;
+        matchCount++;
+        print('  ✓ Match: ${txn.note} = ${txn.amount}đ');
       }
     }
 
+    print('  → Tổng: ${matchCount} giao dịch, $total đ');
     return total;
   }
 
@@ -350,30 +363,33 @@ class BudgetService {
   }
 
   /// Kiểm tra và trả về warning level (0-3)
-  /// 0: OK (< 70%)
-  /// 1: Warning (70-85%)
-  /// 2: Alert (85-100%)
+  /// 0: OK (< 80%)
+  /// 1: Warning (80-90%)
+  /// 2: Alert (90-100%)
   /// 3: Critical (> 100%)
   static int getWarningLevel(double spent, double budget) {
     if (budget <= 0) return 0;
 
     final percentage = (spent / budget) * 100;
 
-    if (percentage >= 100) return 3;
-    if (percentage >= 85) return 2;
-    if (percentage >= 70) return 1;
+    if (percentage > 100) return 4;
+    if (percentage == 100) return 3;
+    if (percentage >= 90) return 2;
+    if (percentage >= 80) return 1;
     return 0;
   }
 
   /// Lấy thông báo phù hợp với warning level
   static String getWarningMessage(int level, String category) {
     switch (level) {
+      case 4:
+        return '🚨 $category: Đã vượt ngân sách';
       case 3:
-        return '🚨 $category: Đã vượt ngân sách!';
+        return '🚨 $category: Đã hết ngân sách!';
       case 2:
-        return '⚠️ $category: Sắp hết ngân sách (>85%)';
+        return '⚠️ $category: Sắp hết ngân sách';
       case 1:
-        return '💡 $category: Đã chi 70% ngân sách';
+        return '💡 $category: Đã chi 80% ngân sách';
       default:
         return '✅ $category: Trong tầm kiểm soát';
     }
