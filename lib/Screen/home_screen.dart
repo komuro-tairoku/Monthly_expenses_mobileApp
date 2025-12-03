@@ -124,6 +124,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 30),
+                onSelected: (value) async {
+                  if (value == 'delete_all') {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Xóa tất cả giao dịch'),
+                        content: const Text(
+                          'Bạn có chắc muốn xóa tất cả giao dịch? Hành động này không thể hoàn tác.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Hủy'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text('Xóa tất cả'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await box.clear();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Đã xóa tất cả giao dịch'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'delete_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_sweep, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Xóa tất cả'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           body: ValueListenableBuilder(
